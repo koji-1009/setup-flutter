@@ -5,6 +5,7 @@
 	"scripts": {
 		"build": "tsc --noEmit",
 		"test": "vitest run --reporter=verbose",
+		"test:coverage": "vitest run --coverage",
 		"lint": "biome check .",
 		"format": "biome check --write .",
 		"package": "node build.mjs"
