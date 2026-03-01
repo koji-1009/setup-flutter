@@ -56,10 +56,16 @@ export async function installFromArchive(
 			);
 		}
 
+		// Extract to the parent of sdkPath so the rename stays on the same
+		// filesystem.  Without this, Windows runners fail with EXDEV because
+		// the temp dir (D:\) and tool-cache (C:\) are on different drives.
+		const extractParent = path.dirname(sdkPath);
+		await io.mkdirP(extractParent);
+
 		const extractDir =
 			platform === "linux"
-				? await tc.extractTar(tmpFile, undefined, ["xJ"])
-				: await tc.extractZip(tmpFile);
+				? await tc.extractTar(tmpFile, extractParent, ["xJ"])
+				: await tc.extractZip(tmpFile, extractParent);
 
 		await io.mv(path.join(extractDir, "flutter"), sdkPath);
 	} finally {
