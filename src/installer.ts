@@ -27,11 +27,31 @@ async function downloadWithHash(
 	);
 	const hash = crypto.createHash("sha256");
 	const fileStream = fs.createWriteStream(tmpFile);
+	const contentLength = Number(response.message.headers["content-length"] || 0);
+	let downloaded = 0;
+	let nextThreshold = 10;
 	await pipeline(
 		response.message,
 		async function* (source) {
 			for await (const chunk of source) {
 				hash.update(chunk);
+				downloaded += chunk.length;
+				if (contentLength > 0) {
+					const percent = (downloaded / contentLength) * 100;
+					while (nextThreshold <= percent) {
+						core.info(
+							`Download progress: ${nextThreshold}% (${(downloaded / 1024 / 1024).toFixed(1)} MB / ${(contentLength / 1024 / 1024).toFixed(1)} MB)`,
+						);
+						nextThreshold += 10;
+					}
+				} else {
+					const mb = downloaded / 1024 / 1024;
+					const prevMb = (downloaded - chunk.length) / 1024 / 1024;
+					const step = 100;
+					if (Math.floor(mb / step) > Math.floor(prevMb / step)) {
+						core.info(`Download progress: ${mb.toFixed(1)} MB downloaded`);
+					}
+				}
 				yield chunk;
 			}
 		},

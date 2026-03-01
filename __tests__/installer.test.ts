@@ -32,12 +32,17 @@ const resolved: ResolvedVersion = {
 	arch: "x64",
 };
 
-function mockHttpGetWith(statusCode?: number) {
+function mockHttpGetWith(
+	statusCode?: number,
+	contentLength?: string,
+	chunks?: Buffer[],
+) {
 	mockedHttpClient.HttpClient.mockImplementation(
 		class {
 			get = vi.fn().mockResolvedValue({
-				message: Object.assign(Readable.from([testBuffer]), {
+				message: Object.assign(Readable.from(chunks ?? [testBuffer]), {
 					statusCode,
+					headers: contentLength ? { "content-length": contentLength } : {},
 				}),
 			});
 		} as unknown as typeof httpClient.HttpClient,
@@ -46,7 +51,7 @@ function mockHttpGetWith(statusCode?: number) {
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	mockHttpGetWith(200);
+	mockHttpGetWith(200, String(testBuffer.length));
 	mockedTc.extractTar.mockResolvedValue("/opt");
 	mockedTc.extractZip.mockResolvedValue("/opt");
 	mockedIo.mkdirP.mockResolvedValue();
@@ -112,6 +117,50 @@ describe("installFromArchive", () => {
 		await expect(
 			installFromArchive(resolved, "/opt/flutter", "linux"),
 		).rejects.toThrow("Download failed: HTTP undefined");
+	});
+
+	it("logs percentage progress when content-length is available", async () => {
+		// Create 10 equal chunks so each is 10% of total
+		const chunkSize = 64;
+		const totalSize = chunkSize * 10;
+		const chunks = Array.from({ length: 10 }, () =>
+			Buffer.alloc(chunkSize, "a"),
+		);
+		const sha = crypto
+			.createHash("sha256")
+			.update(Buffer.concat(chunks))
+			.digest("hex");
+		mockHttpGetWith(200, String(totalSize), chunks);
+		const r = { ...resolved, sha256: sha };
+		await installFromArchive(r, "/opt/flutter", "linux");
+
+		const progressCalls = mockedCore.info.mock.calls.filter((c) =>
+			String(c[0]).includes("Download progress:"),
+		);
+		expect(progressCalls).toHaveLength(10);
+		expect(progressCalls[0][0]).toContain("10%");
+		expect(progressCalls[4][0]).toContain("50%");
+		expect(progressCalls[9][0]).toContain("100%");
+	});
+
+	it("logs MB progress when content-length is missing", async () => {
+		// First chunk (50 MB) does NOT cross a 100 MB boundary → false branch
+		// Second chunk (60 MB) crosses the 100 MB boundary → true branch
+		const smallChunk = Buffer.alloc(50 * 1024 * 1024, "a");
+		const bigChunk = Buffer.alloc(60 * 1024 * 1024, "b");
+		const sha = crypto
+			.createHash("sha256")
+			.update(smallChunk)
+			.update(bigChunk)
+			.digest("hex");
+		mockHttpGetWith(200, undefined, [smallChunk, bigChunk]);
+		const r = { ...resolved, sha256: sha };
+		await installFromArchive(r, "/opt/flutter", "linux");
+
+		const progressCalls = mockedCore.info.mock.calls.filter((c) =>
+			String(c[0]).includes("MB downloaded"),
+		);
+		expect(progressCalls).toHaveLength(1);
 	});
 
 	it("moves flutter directory to sdkPath", async () => {
