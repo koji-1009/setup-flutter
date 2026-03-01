@@ -60554,11 +60554,36 @@ async function downloadWithHash(url2) {
   );
   const hash = crypto6.createHash("sha256");
   const fileStream = fs7.createWriteStream(tmpFile);
+  const contentLength2 = Number(response.message.headers["content-length"] || 0);
+  let downloaded = 0;
+  let nextThreshold = 10;
+  const startTime = Date.now();
   await (0, import_promises.pipeline)(
     response.message,
     async function* (source) {
       for await (const chunk of source) {
         hash.update(chunk);
+        downloaded += chunk.length;
+        const elapsed = (Date.now() - startTime) / 1e3;
+        const speed = elapsed > 0 ? downloaded / 1024 / 1024 / elapsed : 0;
+        if (contentLength2 > 0) {
+          const percent = downloaded / contentLength2 * 100;
+          while (nextThreshold <= percent) {
+            info(
+              `Download progress: ${nextThreshold}% (${(downloaded / 1024 / 1024).toFixed(1)} MB / ${(contentLength2 / 1024 / 1024).toFixed(1)} MB) ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
+            );
+            nextThreshold += 10;
+          }
+        } else {
+          const mb = downloaded / 1024 / 1024;
+          const prevMb = (downloaded - chunk.length) / 1024 / 1024;
+          const step = 100;
+          if (Math.floor(mb / step) > Math.floor(prevMb / step)) {
+            info(
+              `Download progress: ${mb.toFixed(1)} MB downloaded ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
+            );
+          }
+        }
         yield chunk;
       }
     },
