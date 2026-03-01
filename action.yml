@@ -57,6 +57,10 @@ outputs:
   architecture:
     description: 'Resolved CPU architecture'
 
+branding:
+  icon: 'download-cloud'
+  color: 'green'
+
 runs:
   using: 'node24'
   main: 'dist/setup/index.js'
