@@ -1,0 +1,5 @@
+name: test
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+dependencies:
+  flutter_lints: ^1.0.0

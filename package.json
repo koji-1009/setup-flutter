@@ -1,0 +1,36 @@
+{
+	"name": "setup-flutter",
+	"version": "1.0.0",
+	"description": "Set up Flutter SDK for GitHub Actions",
+	"scripts": {
+		"build": "tsc --noEmit",
+		"test": "vitest run --reporter=verbose",
+		"lint": "biome check .",
+		"format": "biome check --write .",
+		"package": "node build.mjs"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/koji-1009/setup-flutter.git"
+	},
+	"author": "koji-1009",
+	"license": "MIT",
+	"dependencies": {
+		"@actions/cache": "^6.0.0",
+		"@actions/core": "^3.0.0",
+		"@actions/exec": "^3.0.0",
+		"@actions/http-client": "^4.0.0",
+		"@actions/io": "^3.0.2",
+		"@actions/tool-cache": "^4.0.0",
+		"semver": "^7.7.4"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.4",
+		"@types/node": "^24.11.0",
+		"@types/semver": "^7.7.1",
+		"@vitest/coverage-v8": "^4.0.18",
+		"esbuild": "^0.27.3",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.18"
+	}
+}

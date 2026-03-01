@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"target": "ES2024",
+		"module": "CommonJS",
+		"moduleResolution": "Node",
+		"strict": true,
+		"esModuleInterop": true
+	},
+	"include": ["src/**/*"],
+	"exclude": ["node_modules", "**/__tests__/**"]
+}

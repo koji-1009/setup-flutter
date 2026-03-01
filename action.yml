@@ -1,0 +1,64 @@
+name: 'Setup Flutter'
+description: 'Set up Flutter SDK for GitHub Actions'
+author: 'koji-1009'
+
+inputs:
+  flutter-version:
+    description: 'Flutter SDK version (e.g. 3.29.0, 3.x, >=3.29.0 <4.0.0)'
+    required: false
+    default: ''
+  flutter-version-file:
+    description: 'Path to pubspec.yaml or .fvmrc'
+    required: false
+    default: ''
+  channel:
+    description: 'Release channel: stable, beta, or master'
+    required: false
+    default: 'stable'
+  architecture:
+    description: 'CPU architecture: x64 or arm64 (auto-detected if omitted)'
+    required: false
+  fvm-flavor:
+    description: 'FVM flavor name'
+    required: false
+    default: ''
+  cache-sdk:
+    description: 'Cache Flutter SDK'
+    required: false
+    default: 'true'
+  cache-pub:
+    description: 'Cache pub dependencies (requires pubspec.lock)'
+    required: false
+    default: 'true'
+  git-source:
+    description: 'Install method: release or git'
+    required: false
+    default: 'release'
+  git-source-url:
+    description: 'Git repository URL'
+    required: false
+    default: 'https://github.com/flutter/flutter.git'
+  dry-run:
+    description: 'Only resolve version, do not install'
+    required: false
+    default: 'false'
+
+outputs:
+  flutter-version:
+    description: 'Installed Flutter version'
+  dart-version:
+    description: 'Included Dart SDK version'
+  channel:
+    description: 'Resolved channel'
+  cache-sdk-hit:
+    description: 'Whether SDK cache was restored'
+  cache-pub-hit:
+    description: 'Whether pub cache was restored'
+  architecture:
+    description: 'Resolved CPU architecture'
+
+runs:
+  using: 'node24'
+  main: 'dist/setup/index.js'
+  post: 'dist/post/index.js'
+  post-if: always()
