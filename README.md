@@ -1,4 +1,8 @@
-# Setup Flutter
+# setup-flutter
+
+[![ci](https://github.com/koji-1009/setup-flutter/actions/workflows/ci.yml/badge.svg)](https://github.com/koji-1009/setup-flutter/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/koji-1009/setup-flutter/graph/badge.svg)](https://codecov.io/gh/koji-1009/setup-flutter)
+[![license](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Set up Flutter SDK for GitHub Actions.
 
