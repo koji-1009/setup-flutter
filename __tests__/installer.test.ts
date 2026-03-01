@@ -141,6 +141,8 @@ describe("installFromArchive", () => {
 		expect(progressCalls[0][0]).toContain("10%");
 		expect(progressCalls[4][0]).toContain("50%");
 		expect(progressCalls[9][0]).toContain("100%");
+		expect(progressCalls[0][0]).toMatch(/\d+\.\d+s/);
+		expect(progressCalls[0][0]).toMatch(/\d+\.\d+ MB\/s/);
 	});
 
 	it("logs MB progress when content-length is missing", async () => {
@@ -161,6 +163,8 @@ describe("installFromArchive", () => {
 			String(c[0]).includes("MB downloaded"),
 		);
 		expect(progressCalls).toHaveLength(1);
+		expect(progressCalls[0][0]).toMatch(/\d+\.\d+s/);
+		expect(progressCalls[0][0]).toMatch(/\d+\.\d+ MB\/s/);
 	});
 
 	it("moves flutter directory to sdkPath", async () => {
