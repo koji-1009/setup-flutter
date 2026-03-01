@@ -60577,7 +60577,9 @@ async function installFromArchive(resolved, sdkPath, platform2) {
         `SHA-256 mismatch: expected ${resolved.sha256}, got ${actual}`
       );
     }
-    const extractDir = platform2 === "linux" ? await extractTar2(tmpFile, void 0, ["xJ"]) : await extractZip(tmpFile);
+    const extractParent = path11.dirname(sdkPath);
+    await mkdirP(extractParent);
+    const extractDir = platform2 === "linux" ? await extractTar2(tmpFile, extractParent, ["xJ"]) : await extractZip(tmpFile, extractParent);
     await mv(path11.join(extractDir, "flutter"), sdkPath);
   } finally {
     await rmRF(tmpFile);

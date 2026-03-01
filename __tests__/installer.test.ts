@@ -47,8 +47,9 @@ function mockHttpGetWith(statusCode?: number) {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockHttpGetWith(200);
-	mockedTc.extractTar.mockResolvedValue("/tmp/extracted");
-	mockedTc.extractZip.mockResolvedValue("/tmp/extracted");
+	mockedTc.extractTar.mockResolvedValue("/opt");
+	mockedTc.extractZip.mockResolvedValue("/opt");
+	mockedIo.mkdirP.mockResolvedValue();
 	mockedIo.mv.mockResolvedValue();
 	mockedIo.rmRF.mockResolvedValue();
 });
@@ -61,7 +62,7 @@ describe("installFromArchive", () => {
 		await installFromArchive(resolved, "/opt/flutter", "linux");
 		expect(mockedTc.extractTar).toHaveBeenCalledWith(
 			expect.stringContaining(".archive"),
-			undefined,
+			"/opt",
 			["xJ"],
 		);
 		expect(mockedTc.extractZip).not.toHaveBeenCalled();
@@ -71,6 +72,7 @@ describe("installFromArchive", () => {
 		await installFromArchive(resolved, "/opt/flutter", "macos");
 		expect(mockedTc.extractZip).toHaveBeenCalledWith(
 			expect.stringContaining(".archive"),
+			"/opt",
 		);
 		expect(mockedTc.extractTar).not.toHaveBeenCalled();
 	});
@@ -79,6 +81,7 @@ describe("installFromArchive", () => {
 		await installFromArchive(resolved, "/opt/flutter", "windows");
 		expect(mockedTc.extractZip).toHaveBeenCalledWith(
 			expect.stringContaining(".archive"),
+			"/opt",
 		);
 		expect(mockedTc.extractTar).not.toHaveBeenCalled();
 	});
