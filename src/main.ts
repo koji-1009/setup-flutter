@@ -46,7 +46,7 @@ export async function run(): Promise<void> {
 				);
 			}
 		} else if (flutterVersionFile) {
-			versionString = await readVersionFile(
+			versionString = readVersionFile(
 				flutterVersionFile,
 				fvmFlavor || undefined,
 			);
@@ -77,16 +77,22 @@ export async function run(): Promise<void> {
 			}
 			resolved = result;
 		} else {
-			gitRef =
-				spec.type === "any"
-					? channelInput
-					: spec.type === "channel"
-						? spec.channel
-						: spec.type === "exact"
-							? spec.version
-							: spec.type === "ref"
-								? spec.ref
-								: channelInput;
+			switch (spec.type) {
+				case "channel":
+					gitRef = spec.channel;
+					break;
+				case "exact":
+					gitRef = spec.version;
+					break;
+				case "ref":
+					gitRef = spec.ref;
+					break;
+				case "constraint":
+				case "range":
+				case "any":
+					gitRef = channelInput;
+					break;
+			}
 			const useManifest = isOriginalRepo(gitSourceUrl);
 			const manifest = useManifest ? await fetchManifest(platform) : undefined;
 			const gitResult = await resolveGitRef(gitSourceUrl, gitRef, manifest);

@@ -26,7 +26,7 @@ export async function run(): Promise<void> {
 			const key = core.getState("pubCacheKey");
 			const pubCachePath = core.getState("pubCachePath");
 			if (key && pubCachePath) {
-				await savePubCache(getPubCachePaths(pubCachePath), key, pubCachePath);
+				await savePubCache(getPubCachePaths(pubCachePath), key);
 			}
 		}
 	} catch (error) {

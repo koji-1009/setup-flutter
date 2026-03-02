@@ -167,7 +167,7 @@ describe("main run()", () => {
 	it("overrides channel when version spec is a channel and warns", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["flutter-version-file"] = ".fvmrc";
-		mockedVersionFile.readVersionFile.mockResolvedValue("beta");
+		mockedVersionFile.readVersionFile.mockReturnValue("beta");
 		mockedVersion.parseVersionSpec.mockReturnValue({
 			type: "channel",
 			channel: "beta",
@@ -306,6 +306,24 @@ describe("main run()", () => {
 		);
 	});
 
+	it("uses git mode with constraint spec falls back to channel", async () => {
+		const { inputs } = setupDefaultMocks();
+		inputs["git-source"] = "git";
+		inputs.channel = "stable";
+		mockedVersion.parseVersionSpec.mockReturnValue({
+			type: "constraint",
+			range: ">=3.29.0 <4.0.0",
+		});
+
+		await run();
+
+		expect(mockedGitSource.resolveGitRef).toHaveBeenCalledWith(
+			"https://github.com/flutter/flutter.git",
+			"stable",
+			expect.anything(),
+		);
+	});
+
 	it("uses git mode with cache hit skips install", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
@@ -321,7 +339,7 @@ describe("main run()", () => {
 	it("reads version file when flutter-version is empty", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["flutter-version-file"] = "pubspec.yaml";
-		mockedVersionFile.readVersionFile.mockResolvedValue(">=3.29.0 <4.0.0");
+		mockedVersionFile.readVersionFile.mockReturnValue(">=3.29.0 <4.0.0");
 		mockedVersion.parseVersionSpec.mockReturnValue({
 			type: "constraint",
 			range: ">=3.29.0 <4.0.0",
@@ -409,9 +427,9 @@ describe("main run()", () => {
 	it("calls setFailed when readVersionFile throws", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["flutter-version-file"] = "pubspec.yaml";
-		mockedVersionFile.readVersionFile.mockRejectedValue(
-			new Error("pubspec.yaml does not contain environment.flutter"),
-		);
+		mockedVersionFile.readVersionFile.mockImplementation(() => {
+			throw new Error("pubspec.yaml does not contain environment.flutter");
+		});
 
 		await run();
 

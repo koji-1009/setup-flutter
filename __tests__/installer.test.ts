@@ -145,6 +145,30 @@ describe("installFromArchive", () => {
 		expect(progressCalls[0][0]).toMatch(/\d+\.\d+ MB\/s/);
 	});
 
+	it("skips progress log when threshold is not reached", async () => {
+		// 20 small chunks, each 5% of total — only even thresholds (10%, 20%, …) log
+		const chunkSize = 32;
+		const totalSize = chunkSize * 20;
+		const chunks = Array.from({ length: 20 }, () =>
+			Buffer.alloc(chunkSize, "a"),
+		);
+		const sha = crypto
+			.createHash("sha256")
+			.update(Buffer.concat(chunks))
+			.digest("hex");
+		mockHttpGetWith(200, String(totalSize), chunks);
+		const r = { ...resolved, sha256: sha };
+		await installFromArchive(r, "/opt/flutter", "linux");
+
+		const progressCalls = mockedCore.info.mock.calls.filter((c) =>
+			String(c[0]).includes("Download progress:"),
+		);
+		// 10%, 20%, ..., 100% = 10 log lines (5% chunks don't trigger logs)
+		expect(progressCalls).toHaveLength(10);
+		expect(progressCalls[0][0]).toContain("10%");
+		expect(progressCalls[0][0]).not.toContain("5%");
+	});
+
 	it("logs MB progress when content-length is missing", async () => {
 		// First chunk (50 MB) does NOT cross a 100 MB boundary → false branch
 		// Second chunk (60 MB) crosses the 100 MB boundary → true branch
@@ -165,6 +189,24 @@ describe("installFromArchive", () => {
 		expect(progressCalls).toHaveLength(1);
 		expect(progressCalls[0][0]).toMatch(/\d+\.\d+s/);
 		expect(progressCalls[0][0]).toMatch(/\d+\.\d+ MB\/s/);
+	});
+
+	it("uses fallback speed when elapsed is zero", async () => {
+		const now = Date.now();
+		const spy = vi.spyOn(Date, "now").mockReturnValue(now);
+		// content-length missing, single large chunk crossing 100 MB boundary
+		const chunk = Buffer.alloc(101 * 1024 * 1024, "a");
+		const sha = crypto.createHash("sha256").update(chunk).digest("hex");
+		mockHttpGetWith(200, undefined, [chunk]);
+		const r = { ...resolved, sha256: sha };
+		await installFromArchive(r, "/opt/flutter", "linux");
+
+		const progressCalls = mockedCore.info.mock.calls.filter((c) =>
+			String(c[0]).includes("MB downloaded"),
+		);
+		expect(progressCalls).toHaveLength(1);
+		expect(progressCalls[0][0]).toContain("MB/s");
+		spy.mockRestore();
 	});
 
 	it("moves flutter directory to sdkPath", async () => {

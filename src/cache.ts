@@ -110,8 +110,8 @@ export async function restorePubCache(
 export async function savePubCache(
 	paths: string[],
 	key: string,
-	pubCachePath: string,
 ): Promise<void> {
+	const pubCachePath = paths[0];
 	if (
 		!fs.existsSync(pubCachePath) ||
 		fs.readdirSync(pubCachePath).length === 0

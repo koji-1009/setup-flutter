@@ -23,6 +23,30 @@ describe("readPubspec", () => {
 		).toThrow("pubspec.yaml does not contain environment.flutter");
 	});
 
+	it("reads constraint from pubspec with quoted inline comment", () => {
+		expect(readPubspec(path.join(fixturesDir, "pubspec-comment.yaml"))).toBe(
+			">=3.29.0 <4.0.0",
+		);
+	});
+
+	it("reads unquoted version from pubspec", () => {
+		expect(readPubspec(path.join(fixturesDir, "pubspec-unquoted.yaml"))).toBe(
+			"3.29.0",
+		);
+	});
+
+	it("reads unquoted version from pubspec with inline comment", () => {
+		expect(
+			readPubspec(path.join(fixturesDir, "pubspec-unquoted-comment.yaml")),
+		).toBe("3.29.0");
+	});
+
+	it("returns empty string for empty quoted flutter value", () => {
+		expect(
+			readPubspec(path.join(fixturesDir, "pubspec-empty-quoted.yaml")),
+		).toBe("");
+	});
+
 	it("throws for invalid YAML", () => {
 		expect(() =>
 			readPubspec(path.join(fixturesDir, "pubspec-invalid.yaml")),
@@ -81,21 +105,21 @@ describe("readFvmrc", () => {
 });
 
 describe("readVersionFile", () => {
-	it("reads pubspec.yaml", async () => {
-		const result = await readVersionFile(
+	it("reads pubspec.yaml", () => {
+		const result = readVersionFile(
 			path.join(fixturesDir, "pubspec-dir", "pubspec.yaml"),
 		);
 		expect(result).toBe(">=3.29.0 <4.0.0");
 	});
 
-	it("reads .fvmrc", async () => {
-		const result = await readVersionFile(path.join(fixturesDir, ".fvmrc"));
+	it("reads .fvmrc", () => {
+		const result = readVersionFile(path.join(fixturesDir, ".fvmrc"));
 		expect(result).toBe("3.29.0");
 	});
 
-	it("throws for unsupported file type", async () => {
-		await expect(
+	it("throws for unsupported file type", () => {
+		expect(() =>
 			readVersionFile(path.join(fixturesDir, "unknown.txt")),
-		).rejects.toThrow("Unsupported version file");
+		).toThrow("Unsupported version file");
 	});
 });

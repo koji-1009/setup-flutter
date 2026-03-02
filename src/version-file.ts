@@ -1,10 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-export async function readVersionFile(
-	filePath: string,
-	flavor?: string,
-): Promise<string> {
+export function readVersionFile(filePath: string, flavor?: string): string {
 	const basename = path.basename(filePath);
 	if (basename === "pubspec.yaml" || basename === "pubspec.yml") {
 		return readPubspec(filePath);
@@ -30,7 +27,16 @@ export function readPubspec(filePath: string): string {
 			}
 			const m = line.match(/^\s+flutter\s*:\s*(.+)/);
 			if (m) {
-				return m[1].replace(/^["']|["']$/g, "").trim();
+				let value = m[1].trim();
+				const quoteMatch = value.match(/^(["'])(.*?)\1/);
+				if (quoteMatch) {
+					return quoteMatch[2].trim();
+				}
+				const commentIndex = value.indexOf("#");
+				if (commentIndex >= 0) {
+					value = value.substring(0, commentIndex).trim();
+				}
+				return value;
 			}
 		}
 	}

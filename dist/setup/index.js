@@ -60564,21 +60564,25 @@ async function downloadWithHash(url2) {
       for await (const chunk of source) {
         hash.update(chunk);
         downloaded += chunk.length;
-        const elapsed = (Date.now() - startTime) / 1e3;
-        const speed = elapsed > 0 ? downloaded / 1024 / 1024 / elapsed : 0;
         if (contentLength2 > 0) {
           const percent = downloaded / contentLength2 * 100;
-          while (nextThreshold <= percent) {
-            info(
-              `Download progress: ${nextThreshold}% (${(downloaded / 1024 / 1024).toFixed(1)} MB / ${(contentLength2 / 1024 / 1024).toFixed(1)} MB) ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
-            );
-            nextThreshold += 10;
+          if (nextThreshold <= percent) {
+            const elapsed = (Date.now() - startTime) / 1e3;
+            const speed = downloaded / 1024 / 1024 / (elapsed || 1);
+            while (nextThreshold <= percent) {
+              info(
+                `Download progress: ${nextThreshold}% (${(downloaded / 1024 / 1024).toFixed(1)} MB / ${(contentLength2 / 1024 / 1024).toFixed(1)} MB) ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
+              );
+              nextThreshold += 10;
+            }
           }
         } else {
           const mb = downloaded / 1024 / 1024;
           const prevMb = (downloaded - chunk.length) / 1024 / 1024;
           const step = 100;
           if (Math.floor(mb / step) > Math.floor(prevMb / step)) {
+            const elapsed = (Date.now() - startTime) / 1e3;
+            const speed = downloaded / 1024 / 1024 / (elapsed || 1);
             info(
               `Download progress: ${mb.toFixed(1)} MB downloaded ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
             );
@@ -60671,7 +60675,7 @@ function parseVersionSpec(input) {
   if (trimmed === "stable" || trimmed === "beta" || trimmed === "master") {
     return { type: "channel", channel: trimmed };
   }
-  if (trimmed.includes(">=") || trimmed.includes("^")) {
+  if (/[>=<^]/.test(trimmed)) {
     return { type: "constraint", range: trimmed };
   }
   if (/^\d+\.x$/.test(trimmed) || /^\d+\.\d+\.x$/.test(trimmed)) {
@@ -60748,7 +60752,7 @@ function resolveFromManifest(manifest, spec, channel, arch2) {
 // src/version-file.ts
 var fs8 = __toESM(require("node:fs"));
 var path13 = __toESM(require("node:path"));
-async function readVersionFile(filePath, flavor) {
+function readVersionFile(filePath, flavor) {
   const basename4 = path13.basename(filePath);
   if (basename4 === "pubspec.yaml" || basename4 === "pubspec.yml") {
     return readPubspec(filePath);
@@ -60773,7 +60777,16 @@ function readPubspec(filePath) {
       }
       const m = line.match(/^\s+flutter\s*:\s*(.+)/);
       if (m) {
-        return m[1].replace(/^["']|["']$/g, "").trim();
+        let value = m[1].trim();
+        const quoteMatch = value.match(/^(["'])(.*?)\1/);
+        if (quoteMatch) {
+          return quoteMatch[2].trim();
+        }
+        const commentIndex = value.indexOf("#");
+        if (commentIndex >= 0) {
+          value = value.substring(0, commentIndex).trim();
+        }
+        return value;
       }
     }
   }
@@ -60819,7 +60832,7 @@ async function run() {
         );
       }
     } else if (flutterVersionFile) {
-      versionString = await readVersionFile(
+      versionString = readVersionFile(
         flutterVersionFile,
         fvmFlavor || void 0
       );
@@ -60846,7 +60859,22 @@ async function run() {
       }
       resolved = result;
     } else {
-      gitRef = spec.type === "any" ? channelInput : spec.type === "channel" ? spec.channel : spec.type === "exact" ? spec.version : spec.type === "ref" ? spec.ref : channelInput;
+      switch (spec.type) {
+        case "channel":
+          gitRef = spec.channel;
+          break;
+        case "exact":
+          gitRef = spec.version;
+          break;
+        case "ref":
+          gitRef = spec.ref;
+          break;
+        case "constraint":
+        case "range":
+        case "any":
+          gitRef = channelInput;
+          break;
+      }
       const useManifest = isOriginalRepo(gitSourceUrl);
       const manifest = useManifest ? await fetchManifest(platform2) : void 0;
       const gitResult = await resolveGitRef(gitSourceUrl, gitRef, manifest);

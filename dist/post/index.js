@@ -60730,7 +60730,8 @@ async function saveSdkCache(sdkPath, key) {
 function getPubCachePaths(pubCachePath) {
   return [pubCachePath];
 }
-async function savePubCache(paths, key, pubCachePath) {
+async function savePubCache(paths, key) {
+  const pubCachePath = paths[0];
   if (!fs6.existsSync(pubCachePath) || fs6.readdirSync(pubCachePath).length === 0) {
     info("Pub cache is empty, skipping save");
     return;
@@ -60769,7 +60770,7 @@ async function run() {
       const key = getState("pubCacheKey");
       const pubCachePath = getState("pubCachePath");
       if (key && pubCachePath) {
-        await savePubCache(getPubCachePaths(pubCachePath), key, pubCachePath);
+        await savePubCache(getPubCachePaths(pubCachePath), key);
       }
     }
   } catch (error2) {

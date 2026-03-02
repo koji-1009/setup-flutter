@@ -275,7 +275,7 @@ describe("savePubCache", () => {
 			"file1",
 		] as unknown as ReturnType<typeof fs.readdirSync>);
 		mockedCache.saveCache.mockResolvedValue(1);
-		await savePubCache(["/pub-cache"], "key", "/pub-cache");
+		await savePubCache(["/pub-cache"], "key");
 		expect(mockedCache.saveCache).toHaveBeenCalled();
 	});
 
@@ -284,7 +284,7 @@ describe("savePubCache", () => {
 		vi.mocked(fs.readdirSync).mockReturnValue(
 			[] as unknown as ReturnType<typeof fs.readdirSync>,
 		);
-		await savePubCache(["/pub-cache"], "key", "/pub-cache");
+		await savePubCache(["/pub-cache"], "key");
 		expect(mockedCache.saveCache).not.toHaveBeenCalled();
 		expect(mockedCore.info).toHaveBeenCalledWith(
 			expect.stringContaining("empty"),
@@ -293,7 +293,7 @@ describe("savePubCache", () => {
 
 	it("skips save when directory does not exist", async () => {
 		vi.mocked(fs.existsSync).mockReturnValue(false);
-		await savePubCache(["/pub-cache"], "key", "/pub-cache");
+		await savePubCache(["/pub-cache"], "key");
 		expect(mockedCache.saveCache).not.toHaveBeenCalled();
 	});
 
@@ -305,7 +305,7 @@ describe("savePubCache", () => {
 		const error = new Error("Cache already exists");
 		error.name = "ReserveCacheError";
 		mockedCache.saveCache.mockRejectedValue(error);
-		await savePubCache(["/pub-cache"], "key", "/pub-cache");
+		await savePubCache(["/pub-cache"], "key");
 		expect(mockedCore.info).toHaveBeenCalledWith(
 			expect.stringContaining("already exists"),
 		);
@@ -317,7 +317,7 @@ describe("savePubCache", () => {
 			"file1",
 		] as unknown as ReturnType<typeof fs.readdirSync>);
 		mockedCache.saveCache.mockRejectedValue(new Error("network error"));
-		await savePubCache(["/pub-cache"], "key", "/pub-cache");
+		await savePubCache(["/pub-cache"], "key");
 		expect(mockedCore.warning).toHaveBeenCalledWith(
 			expect.stringContaining("network error"),
 		);
