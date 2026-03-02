@@ -1,7 +1,7 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as exec from "@actions/exec";
-import { beforeEach, describe, expect, it, type Mocked, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { exec } from "@actions/exec";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	installFromGit,
 	isOriginalRepo,
@@ -12,13 +12,8 @@ import type { FlutterManifest } from "../src/version";
 vi.mock("@actions/exec");
 vi.mock("@actions/core");
 
-const mockedExec = exec as Mocked<typeof exec>;
-
 const fixture: FlutterManifest = JSON.parse(
-	fs.readFileSync(
-		path.join(__dirname, "fixtures", "releases_linux.json"),
-		"utf8",
-	),
+	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),
 );
 
 describe("isOriginalRepo", () => {
@@ -74,7 +69,7 @@ describe("resolveGitRef (original repo + manifest)", () => {
 	});
 
 	it("falls back to ls-remote for master (not in current_release)", async () => {
-		mockedExec.exec.mockImplementation(async (_cmd, _args, options) => {
+		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
 			if (options?.listeners?.stdout) {
 				const data = Buffer.from("abc123def456\trefs/heads/master\n");
 				options.listeners.stdout(data);
@@ -97,7 +92,7 @@ describe("resolveGitRef (fork)", () => {
 	});
 
 	it("resolves branch from ls-remote", async () => {
-		mockedExec.exec.mockImplementation(async (_cmd, _args, options) => {
+		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
 			if (options?.listeners?.stdout) {
 				const data = Buffer.from("deadbeef1234\trefs/heads/my-branch\n");
 				options.listeners.stdout(data);
@@ -113,7 +108,7 @@ describe("resolveGitRef (fork)", () => {
 	});
 
 	it("resolves tag from ls-remote", async () => {
-		mockedExec.exec.mockImplementation(async (_cmd, _args, options) => {
+		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
 			if (options?.listeners?.stdout) {
 				const data = Buffer.from("cafebabe5678\trefs/tags/v1.0.0\n");
 				options.listeners.stdout(data);
@@ -129,7 +124,7 @@ describe("resolveGitRef (fork)", () => {
 	});
 
 	it("returns hash directly if ref looks like a hash", async () => {
-		mockedExec.exec.mockImplementation(async (_cmd, _args, options) => {
+		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
 			if (options?.listeners?.stdout) {
 				options.listeners.stdout(Buffer.from(""));
 			}
@@ -144,7 +139,7 @@ describe("resolveGitRef (fork)", () => {
 	});
 
 	it("throws when ref cannot be resolved", async () => {
-		mockedExec.exec.mockImplementation(async (_cmd, _args, options) => {
+		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
 			if (options?.listeners?.stdout) {
 				options.listeners.stdout(Buffer.from(""));
 			}
@@ -163,7 +158,7 @@ describe("resolveGitRef (fork)", () => {
 describe("installFromGit", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockedExec.exec.mockResolvedValue(0);
+		vi.mocked(exec).mockResolvedValue(0);
 	});
 
 	it("clones with --depth 1 --branch for branch ref", async () => {
@@ -173,7 +168,7 @@ describe("installFromGit", () => {
 			"/opt/flutter",
 			"abc123def4567890abc123def4567890abc123de",
 		);
-		expect(mockedExec.exec).toHaveBeenCalledWith("git", [
+		expect(exec).toHaveBeenCalledWith("git", [
 			"clone",
 			"--depth",
 			"1",
@@ -182,10 +177,9 @@ describe("installFromGit", () => {
 			"https://github.com/flutter/flutter.git",
 			"/opt/flutter",
 		]);
-		expect(mockedExec.exec).toHaveBeenCalledWith(
-			expect.stringContaining("flutter"),
-			["precache"],
-		);
+		expect(exec).toHaveBeenCalledWith(expect.stringContaining("flutter"), [
+			"precache",
+		]);
 	});
 
 	it("does full clone + checkout for commit hash ref", async () => {
@@ -196,12 +190,12 @@ describe("installFromGit", () => {
 			"/opt/flutter",
 			hash,
 		);
-		expect(mockedExec.exec).toHaveBeenCalledWith("git", [
+		expect(exec).toHaveBeenCalledWith("git", [
 			"clone",
 			"https://github.com/flutter/flutter.git",
 			"/opt/flutter",
 		]);
-		expect(mockedExec.exec).toHaveBeenCalledWith("git", [
+		expect(exec).toHaveBeenCalledWith("git", [
 			"-C",
 			"/opt/flutter",
 			"checkout",
@@ -216,7 +210,7 @@ describe("installFromGit", () => {
 			"/opt/flutter",
 			"abc1234", // short hash, not 40 chars
 		);
-		expect(mockedExec.exec).toHaveBeenCalledWith("git", [
+		expect(exec).toHaveBeenCalledWith("git", [
 			"clone",
 			"--depth",
 			"1",
@@ -234,7 +228,7 @@ describe("installFromGit", () => {
 			"/opt/flutter",
 			"abc123def4567890abc123def4567890abc123de",
 		);
-		const calls = mockedExec.exec.mock.calls;
+		const calls = vi.mocked(exec).mock.calls;
 		const precacheCall = calls.find(
 			(c: unknown[]) => typeof c[0] === "string" && c[0].includes("flutter"),
 		);

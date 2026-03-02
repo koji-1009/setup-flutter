@@ -166,13 +166,8 @@ export async function run(): Promise<void> {
 		if (!sdkHit) {
 			if (gitSource === "release") {
 				await installFromArchive(resolved, sdkDir, platform);
-			} else {
-				await installFromGit(
-					gitSourceUrl,
-					gitRef as string,
-					sdkDir,
-					gitCommitHash as string,
-				);
+			} else if (gitRef && gitCommitHash) {
+				await installFromGit(gitSourceUrl, gitRef, sdkDir, gitCommitHash);
 			}
 			info(`Flutter SDK installed to ${sdkDir}`);
 		}

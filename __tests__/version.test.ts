@@ -1,5 +1,5 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
 	afterEach,
 	beforeEach,
@@ -19,17 +19,11 @@ import {
 vi.mock("@actions/http-client");
 
 const linuxFixture: FlutterManifest = JSON.parse(
-	fs.readFileSync(
-		path.join(__dirname, "fixtures", "releases_linux.json"),
-		"utf8",
-	),
+	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),
 );
 
 const macosFixture: FlutterManifest = JSON.parse(
-	fs.readFileSync(
-		path.join(__dirname, "fixtures", "releases_macos.json"),
-		"utf8",
-	),
+	readFileSync(join(__dirname, "fixtures", "releases_macos.json"), "utf8"),
 );
 
 describe("parseVersionSpec", () => {

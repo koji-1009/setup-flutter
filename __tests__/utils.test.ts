@@ -1,5 +1,5 @@
-import * as os from "node:os";
-import * as path from "node:path";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	getArch,
@@ -89,14 +89,14 @@ describe("getPubCachePath", () => {
 	it("returns ~/.pub-cache on linux", () => {
 		delete process.env.PUB_CACHE;
 		Object.defineProperty(process, "platform", { value: "linux" });
-		const expected = path.join(os.homedir(), ".pub-cache");
+		const expected = join(homedir(), ".pub-cache");
 		expect(getPubCachePath()).toBe(expected);
 	});
 
 	it("returns ~/.pub-cache on macos", () => {
 		delete process.env.PUB_CACHE;
 		Object.defineProperty(process, "platform", { value: "darwin" });
-		const expected = path.join(os.homedir(), ".pub-cache");
+		const expected = join(homedir(), ".pub-cache");
 		expect(getPubCachePath()).toBe(expected);
 	});
 
@@ -104,11 +104,7 @@ describe("getPubCachePath", () => {
 		delete process.env.PUB_CACHE;
 		Object.defineProperty(process, "platform", { value: "win32" });
 		process.env.LOCALAPPDATA = "C:\\Users\\test\\AppData\\Local";
-		const expected = path.join(
-			"C:\\Users\\test\\AppData\\Local",
-			"Pub",
-			"Cache",
-		);
+		const expected = join("C:\\Users\\test\\AppData\\Local", "Pub", "Cache");
 		expect(getPubCachePath()).toBe(expected);
 	});
 
@@ -116,7 +112,7 @@ describe("getPubCachePath", () => {
 		delete process.env.PUB_CACHE;
 		delete process.env.LOCALAPPDATA;
 		Object.defineProperty(process, "platform", { value: "win32" });
-		expect(getPubCachePath()).toBe(path.join("", "Pub", "Cache"));
+		expect(getPubCachePath()).toBe(join("", "Pub", "Cache"));
 	});
 });
 
