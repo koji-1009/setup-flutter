@@ -249,6 +249,28 @@ describe("resolveFromManifest (linux)", () => {
 		expect(result?.version).toBe("3.41.2");
 	});
 
+	it("resolves constraint with pre-release version on beta", () => {
+		const result = resolveFromManifest(
+			linuxFixture,
+			{ type: "constraint", range: ">=3.27.0" },
+			"beta",
+			"x64",
+		);
+		expect(result).not.toBeNull();
+		expect(result?.version).toBe("3.42.0-0.1.pre");
+	});
+
+	it("resolves constraint ^3.27.0 with pre-release version on beta", () => {
+		const result = resolveFromManifest(
+			linuxFixture,
+			{ type: "constraint", range: "^3.27.0" },
+			"beta",
+			"x64",
+		);
+		expect(result).not.toBeNull();
+		expect(result?.version).toBe("3.42.0-0.1.pre");
+	});
+
 	it("resolves channel beta to latest beta", () => {
 		const result = resolveFromManifest(
 			linuxFixture,

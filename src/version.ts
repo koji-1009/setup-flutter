@@ -123,7 +123,9 @@ export function resolveFromManifest(
 				matched = true;
 				break;
 			case "constraint":
-				matched = satisfies(release.version, spec.range);
+				matched = satisfies(release.version, spec.range, {
+					includePrerelease: true,
+				});
 				break;
 			case "ref":
 				throw new Error("ref spec cannot be used with release mode");
