@@ -70,7 +70,7 @@ export async function installFromArchive(
 	resolved: ResolvedVersion,
 	sdkPath: string,
 	platform: string,
-): Promise<string> {
+): Promise<void> {
 	info(`Downloading Flutter ${resolved.version}...`);
 	const { file: tmpFile, sha256: actual } = await downloadWithHash(
 		resolved.downloadUrl,
@@ -99,7 +99,6 @@ export async function installFromArchive(
 	} finally {
 		await rmRF(tmpFile);
 	}
-	return sdkPath;
 }
 
 export function setupPath(sdkPath: string): void {

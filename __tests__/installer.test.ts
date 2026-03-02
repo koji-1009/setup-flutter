@@ -87,8 +87,7 @@ describe("installFromArchive", () => {
 	});
 
 	it("succeeds when SHA-256 matches", async () => {
-		const result = await installFromArchive(resolved, "/opt/flutter", "linux");
-		expect(result).toBe("/opt/flutter");
+		await installFromArchive(resolved, "/opt/flutter", "linux");
 		expect(mv).toHaveBeenCalled();
 	});
 

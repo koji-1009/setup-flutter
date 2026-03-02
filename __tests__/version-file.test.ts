@@ -104,6 +104,13 @@ describe("readVersionFile", () => {
 		expect(result).toBe(">=3.29.0 <4.0.0");
 	});
 
+	it("reads pubspec.yml", () => {
+		const result = readVersionFile(
+			join(fixturesDir, "pubspec-dir", "pubspec.yml"),
+		);
+		expect(result).toBe(">=3.29.0 <4.0.0");
+	});
+
 	it("reads .fvmrc", () => {
 		const result = readVersionFile(join(fixturesDir, ".fvmrc"));
 		expect(result).toBe("3.29.0");

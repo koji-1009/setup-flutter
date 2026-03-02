@@ -8,7 +8,7 @@ inputs:
     required: false
     default: ''
   flutter-version-file:
-    description: 'Path to pubspec.yaml or .fvmrc'
+    description: 'Path to pubspec.yaml, pubspec.yml, or .fvmrc'
     required: false
     default: ''
   channel:

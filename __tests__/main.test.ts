@@ -103,7 +103,7 @@ function setupDefaultMocks() {
 	vi.mocked(fetchManifest).mockResolvedValue(defaultManifest);
 	vi.mocked(resolveFromManifest).mockReturnValue(defaultResolved);
 
-	vi.mocked(installFromArchive).mockResolvedValue("/opt/flutter");
+	vi.mocked(installFromArchive).mockResolvedValue();
 	vi.mocked(setupPath).mockImplementation(() => {});
 
 	vi.mocked(sdkCacheKey).mockReturnValue("flutter-sdk-linux-stable-3.29.3-x64");
