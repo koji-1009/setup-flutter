@@ -60658,7 +60658,7 @@ function getPubCachePath() {
   return (0, import_node_path4.join)((0, import_node_os4.homedir)(), ".pub-cache");
 }
 function getStorageBaseUrl() {
-  return process.env.FLUTTER_STORAGE_BASE_URL || "https://storage.googleapis.com";
+  return (process.env.FLUTTER_STORAGE_BASE_URL || "https://storage.googleapis.com").replace(/\/$/, "");
 }
 function getManifestUrl(platform2) {
   return `${getStorageBaseUrl()}/flutter_infra_release/releases/releases_${platform2}.json`;
@@ -60701,7 +60701,10 @@ async function fetchManifest(platform2) {
   const manifest = response.result;
   const customBaseUrl = process.env.FLUTTER_STORAGE_BASE_URL;
   if (customBaseUrl && manifest.base_url.includes("googleapis.com")) {
-    manifest.base_url = `${customBaseUrl}/flutter_infra_release`;
+    manifest.base_url = manifest.base_url.replace(
+      "https://storage.googleapis.com",
+      getStorageBaseUrl()
+    );
   }
   return manifest;
 }
@@ -60792,7 +60795,7 @@ function readPubspec(filePath) {
       }
     }
   }
-  throw new Error("pubspec.yaml does not contain environment.flutter");
+  throw new Error(`${(0, import_node_path5.basename)(filePath)} does not contain environment.flutter`);
 }
 function readFvmrc(filePath, flavor) {
   const content = (0, import_node_fs4.readFileSync)(filePath, "utf8");

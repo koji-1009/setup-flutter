@@ -40,7 +40,7 @@ export function readPubspec(filePath: string): string {
 			}
 		}
 	}
-	throw new Error("pubspec.yaml does not contain environment.flutter");
+	throw new Error(`${basename(filePath)} does not contain environment.flutter`);
 }
 
 export function readFvmrc(filePath: string, flavor?: string): string {

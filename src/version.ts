@@ -1,7 +1,7 @@
 import { info } from "@actions/core";
 import { HttpClient } from "@actions/http-client";
 import { major, minor, satisfies } from "semver";
-import { getManifestUrl } from "./utils";
+import { getManifestUrl, getStorageBaseUrl } from "./utils";
 
 export interface FlutterRelease {
 	hash: string;
@@ -83,7 +83,10 @@ export async function fetchManifest(
 	const manifest = response.result;
 	const customBaseUrl = process.env.FLUTTER_STORAGE_BASE_URL;
 	if (customBaseUrl && manifest.base_url.includes("googleapis.com")) {
-		manifest.base_url = `${customBaseUrl}/flutter_infra_release`;
+		manifest.base_url = manifest.base_url.replace(
+			"https://storage.googleapis.com",
+			getStorageBaseUrl(),
+		);
 	}
 
 	return manifest;

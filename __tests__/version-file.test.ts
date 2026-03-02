@@ -18,7 +18,9 @@ describe("readPubspec", () => {
 	it("throws when flutter is not in environment", () => {
 		expect(() =>
 			readPubspec(join(fixturesDir, "pubspec-without-flutter.yaml")),
-		).toThrow("pubspec.yaml does not contain environment.flutter");
+		).toThrow(
+			"pubspec-without-flutter.yaml does not contain environment.flutter",
+		);
 	});
 
 	it("reads constraint from pubspec with quoted inline comment", () => {
