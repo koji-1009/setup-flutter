@@ -481,7 +481,7 @@ describe("fetchManifest", () => {
 
 		const result = await fetchManifest("linux");
 		expect(result.base_url).toBe(
-			"https://mirror.example.com/flutter_infra_release",
+			"https://mirror.example.com/flutter_infra_release/releases",
 		);
 	});
 

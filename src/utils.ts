@@ -41,7 +41,7 @@ export function getPubCachePath(): string {
 export function getStorageBaseUrl(): string {
 	return (
 		process.env.FLUTTER_STORAGE_BASE_URL || "https://storage.googleapis.com"
-	);
+	).replace(/\/$/, "");
 }
 
 export function getManifestUrl(platform: string): string {
