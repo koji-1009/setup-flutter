@@ -76,6 +76,34 @@ describe("parseVersionSpec", () => {
 		});
 	});
 
+	it("returns ref for ~ (not a Dart constraint)", () => {
+		expect(parseVersionSpec("~3.27.0")).toEqual({
+			type: "ref",
+			ref: "~3.27.0",
+		});
+	});
+
+	it("returns constraint for <", () => {
+		expect(parseVersionSpec("<4.0.0")).toEqual({
+			type: "constraint",
+			range: "<4.0.0",
+		});
+	});
+
+	it("returns constraint for >", () => {
+		expect(parseVersionSpec(">3.0.0")).toEqual({
+			type: "constraint",
+			range: ">3.0.0",
+		});
+	});
+
+	it("returns constraint for <=", () => {
+		expect(parseVersionSpec("<=3.29.0")).toEqual({
+			type: "constraint",
+			range: "<=3.29.0",
+		});
+	});
+
 	it("returns range for 3.x", () => {
 		expect(parseVersionSpec("3.x")).toEqual({ type: "range", major: 3 });
 	});

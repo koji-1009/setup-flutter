@@ -82,7 +82,6 @@ describe("post run()", () => {
 		expect(mockedCacheModule.savePubCache).toHaveBeenCalledWith(
 			["/home/runner/.pub-cache"],
 			"flutter-pub-linux-abc123",
-			"/home/runner/.pub-cache",
 		);
 	});
 

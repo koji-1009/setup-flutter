@@ -48,7 +48,7 @@ export function parseVersionSpec(input: string): VersionSpec {
 		return { type: "channel", channel: trimmed };
 	}
 
-	if (trimmed.includes(">=") || trimmed.includes("^")) {
+	if (/[>=<^]/.test(trimmed)) {
 		return { type: "constraint", range: trimmed };
 	}
 
