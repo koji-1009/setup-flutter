@@ -1,10 +1,10 @@
-import * as crypto from "node:crypto";
+import { createHash } from "node:crypto";
 import { Readable } from "node:stream";
-import * as core from "@actions/core";
-import * as httpClient from "@actions/http-client";
-import * as io from "@actions/io";
-import * as tc from "@actions/tool-cache";
-import { beforeEach, describe, expect, it, type Mocked, vi } from "vitest";
+import { addPath, exportVariable, info } from "@actions/core";
+import { HttpClient } from "@actions/http-client";
+import { mkdirP, mv, rmRF } from "@actions/io";
+import { extractTar, extractZip } from "@actions/tool-cache";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedVersion } from "../src/version";
 
 vi.mock("@actions/http-client");
@@ -12,14 +12,9 @@ vi.mock("@actions/tool-cache");
 vi.mock("@actions/core");
 vi.mock("@actions/io");
 
-const mockedHttpClient = httpClient as Mocked<typeof httpClient>;
-const mockedTc = tc as Mocked<typeof tc>;
-const mockedCore = core as Mocked<typeof core>;
-const mockedIo = io as Mocked<typeof io>;
-
 // Create a known buffer and compute its SHA-256
 const testBuffer = Buffer.from("test-flutter-archive");
-const testSha256 = crypto.createHash("sha256").update(testBuffer).digest("hex");
+const testSha256 = createHash("sha256").update(testBuffer).digest("hex");
 
 const resolved: ResolvedVersion = {
 	version: "3.29.0",
@@ -37,7 +32,7 @@ function mockHttpGetWith(
 	contentLength?: string,
 	chunks?: Buffer[],
 ) {
-	mockedHttpClient.HttpClient.mockImplementation(
+	vi.mocked(HttpClient).mockImplementation(
 		class {
 			get = vi.fn().mockResolvedValue({
 				message: Object.assign(Readable.from(chunks ?? [testBuffer]), {
@@ -45,18 +40,18 @@ function mockHttpGetWith(
 					headers: contentLength ? { "content-length": contentLength } : {},
 				}),
 			});
-		} as unknown as typeof httpClient.HttpClient,
+		} as unknown as typeof HttpClient,
 	);
 }
 
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockHttpGetWith(200, String(testBuffer.length));
-	mockedTc.extractTar.mockResolvedValue("/opt");
-	mockedTc.extractZip.mockResolvedValue("/opt");
-	mockedIo.mkdirP.mockResolvedValue();
-	mockedIo.mv.mockResolvedValue();
-	mockedIo.rmRF.mockResolvedValue();
+	vi.mocked(extractTar).mockResolvedValue("/opt");
+	vi.mocked(extractZip).mockResolvedValue("/opt");
+	vi.mocked(mkdirP).mockResolvedValue();
+	vi.mocked(mv).mockResolvedValue();
+	vi.mocked(rmRF).mockResolvedValue();
 });
 
 // Import after mocks are set up
@@ -65,36 +60,36 @@ const { installFromArchive, setupPath } = await import("../src/installer");
 describe("installFromArchive", () => {
 	it("uses extractTar with xJ flags on linux", async () => {
 		await installFromArchive(resolved, "/opt/flutter", "linux");
-		expect(mockedTc.extractTar).toHaveBeenCalledWith(
+		expect(extractTar).toHaveBeenCalledWith(
 			expect.stringContaining(".archive"),
 			"/opt",
 			["xJ"],
 		);
-		expect(mockedTc.extractZip).not.toHaveBeenCalled();
+		expect(extractZip).not.toHaveBeenCalled();
 	});
 
 	it("uses extractZip on macos", async () => {
 		await installFromArchive(resolved, "/opt/flutter", "macos");
-		expect(mockedTc.extractZip).toHaveBeenCalledWith(
+		expect(extractZip).toHaveBeenCalledWith(
 			expect.stringContaining(".archive"),
 			"/opt",
 		);
-		expect(mockedTc.extractTar).not.toHaveBeenCalled();
+		expect(extractTar).not.toHaveBeenCalled();
 	});
 
 	it("uses extractZip on windows", async () => {
 		await installFromArchive(resolved, "/opt/flutter", "windows");
-		expect(mockedTc.extractZip).toHaveBeenCalledWith(
+		expect(extractZip).toHaveBeenCalledWith(
 			expect.stringContaining(".archive"),
 			"/opt",
 		);
-		expect(mockedTc.extractTar).not.toHaveBeenCalled();
+		expect(extractTar).not.toHaveBeenCalled();
 	});
 
 	it("succeeds when SHA-256 matches", async () => {
 		const result = await installFromArchive(resolved, "/opt/flutter", "linux");
 		expect(result).toBe("/opt/flutter");
-		expect(mockedIo.mv).toHaveBeenCalled();
+		expect(mv).toHaveBeenCalled();
 	});
 
 	it("throws and cleans up when SHA-256 mismatches", async () => {
@@ -102,7 +97,7 @@ describe("installFromArchive", () => {
 		await expect(
 			installFromArchive(badResolved, "/opt/flutter", "linux"),
 		).rejects.toThrow("SHA-256 mismatch");
-		expect(mockedIo.rmRF).toHaveBeenCalled();
+		expect(rmRF).toHaveBeenCalled();
 	});
 
 	it("throws when HTTP response has error status", async () => {
@@ -126,17 +121,16 @@ describe("installFromArchive", () => {
 		const chunks = Array.from({ length: 10 }, () =>
 			Buffer.alloc(chunkSize, "a"),
 		);
-		const sha = crypto
-			.createHash("sha256")
+		const sha = createHash("sha256")
 			.update(Buffer.concat(chunks))
 			.digest("hex");
 		mockHttpGetWith(200, String(totalSize), chunks);
 		const r = { ...resolved, sha256: sha };
 		await installFromArchive(r, "/opt/flutter", "linux");
 
-		const progressCalls = mockedCore.info.mock.calls.filter((c) =>
-			String(c[0]).includes("Download progress:"),
-		);
+		const progressCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("Download progress:"));
 		expect(progressCalls).toHaveLength(10);
 		expect(progressCalls[0][0]).toContain("10%");
 		expect(progressCalls[4][0]).toContain("50%");
@@ -152,17 +146,16 @@ describe("installFromArchive", () => {
 		const chunks = Array.from({ length: 20 }, () =>
 			Buffer.alloc(chunkSize, "a"),
 		);
-		const sha = crypto
-			.createHash("sha256")
+		const sha = createHash("sha256")
 			.update(Buffer.concat(chunks))
 			.digest("hex");
 		mockHttpGetWith(200, String(totalSize), chunks);
 		const r = { ...resolved, sha256: sha };
 		await installFromArchive(r, "/opt/flutter", "linux");
 
-		const progressCalls = mockedCore.info.mock.calls.filter((c) =>
-			String(c[0]).includes("Download progress:"),
-		);
+		const progressCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("Download progress:"));
 		// 10%, 20%, ..., 100% = 10 log lines (5% chunks don't trigger logs)
 		expect(progressCalls).toHaveLength(10);
 		expect(progressCalls[0][0]).toContain("10%");
@@ -174,8 +167,7 @@ describe("installFromArchive", () => {
 		// Second chunk (60 MB) crosses the 100 MB boundary → true branch
 		const smallChunk = Buffer.alloc(50 * 1024 * 1024, "a");
 		const bigChunk = Buffer.alloc(60 * 1024 * 1024, "b");
-		const sha = crypto
-			.createHash("sha256")
+		const sha = createHash("sha256")
 			.update(smallChunk)
 			.update(bigChunk)
 			.digest("hex");
@@ -183,9 +175,9 @@ describe("installFromArchive", () => {
 		const r = { ...resolved, sha256: sha };
 		await installFromArchive(r, "/opt/flutter", "linux");
 
-		const progressCalls = mockedCore.info.mock.calls.filter((c) =>
-			String(c[0]).includes("MB downloaded"),
-		);
+		const progressCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("MB downloaded"));
 		expect(progressCalls).toHaveLength(1);
 		expect(progressCalls[0][0]).toMatch(/\d+\.\d+s/);
 		expect(progressCalls[0][0]).toMatch(/\d+\.\d+ MB\/s/);
@@ -196,14 +188,14 @@ describe("installFromArchive", () => {
 		const spy = vi.spyOn(Date, "now").mockReturnValue(now);
 		// content-length missing, single large chunk crossing 100 MB boundary
 		const chunk = Buffer.alloc(101 * 1024 * 1024, "a");
-		const sha = crypto.createHash("sha256").update(chunk).digest("hex");
+		const sha = createHash("sha256").update(chunk).digest("hex");
 		mockHttpGetWith(200, undefined, [chunk]);
 		const r = { ...resolved, sha256: sha };
 		await installFromArchive(r, "/opt/flutter", "linux");
 
-		const progressCalls = mockedCore.info.mock.calls.filter((c) =>
-			String(c[0]).includes("MB downloaded"),
-		);
+		const progressCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("MB downloaded"));
 		expect(progressCalls).toHaveLength(1);
 		expect(progressCalls[0][0]).toContain("MB/s");
 		spy.mockRestore();
@@ -211,7 +203,7 @@ describe("installFromArchive", () => {
 
 	it("moves flutter directory to sdkPath", async () => {
 		await installFromArchive(resolved, "/opt/flutter", "linux");
-		expect(mockedIo.mv).toHaveBeenCalledWith(
+		expect(mv).toHaveBeenCalledWith(
 			expect.stringContaining("flutter"),
 			"/opt/flutter",
 		);
@@ -221,14 +213,9 @@ describe("installFromArchive", () => {
 describe("setupPath", () => {
 	it("adds flutter bin and dart-sdk bin to PATH and sets FLUTTER_ROOT", () => {
 		setupPath("/opt/flutter");
-		expect(mockedCore.addPath).toHaveBeenCalledTimes(2);
-		expect(mockedCore.addPath).toHaveBeenCalledWith("/opt/flutter/bin");
-		expect(mockedCore.addPath).toHaveBeenCalledWith(
-			"/opt/flutter/bin/cache/dart-sdk/bin",
-		);
-		expect(mockedCore.exportVariable).toHaveBeenCalledWith(
-			"FLUTTER_ROOT",
-			"/opt/flutter",
-		);
+		expect(addPath).toHaveBeenCalledTimes(2);
+		expect(addPath).toHaveBeenCalledWith("/opt/flutter/bin");
+		expect(addPath).toHaveBeenCalledWith("/opt/flutter/bin/cache/dart-sdk/bin");
+		expect(exportVariable).toHaveBeenCalledWith("FLUTTER_ROOT", "/opt/flutter");
 	});
 });

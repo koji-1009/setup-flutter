@@ -60931,13 +60931,8 @@ async function run() {
     if (!sdkHit) {
       if (gitSource === "release") {
         await installFromArchive(resolved, sdkDir, platform2);
-      } else {
-        await installFromGit(
-          gitSourceUrl,
-          gitRef,
-          sdkDir,
-          gitCommitHash
-        );
+      } else if (gitRef && gitCommitHash) {
+        await installFromGit(gitSourceUrl, gitRef, sdkDir, gitCommitHash);
       }
       info(`Flutter SDK installed to ${sdkDir}`);
     }
