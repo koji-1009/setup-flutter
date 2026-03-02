@@ -60613,7 +60613,6 @@ async function installFromArchive(resolved, sdkPath, platform2) {
   } finally {
     await rmRF(tmpFile);
   }
-  return sdkPath;
 }
 function setupPath(sdkPath) {
   addPath((0, import_node_path3.join)(sdkPath, "bin"));
