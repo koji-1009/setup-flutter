@@ -1,5 +1,5 @@
-import * as os from "node:os";
-import * as path from "node:path";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export function getPlatform(): "linux" | "macos" | "windows" {
 	switch (process.platform) {
@@ -33,9 +33,9 @@ export function getPubCachePath(): string {
 	if (process.env.PUB_CACHE) return process.env.PUB_CACHE;
 	const platform = getPlatform();
 	if (platform === "windows") {
-		return path.join(process.env.LOCALAPPDATA || "", "Pub", "Cache");
+		return join(process.env.LOCALAPPDATA || "", "Pub", "Cache");
 	}
-	return path.join(os.homedir(), ".pub-cache");
+	return join(homedir(), ".pub-cache");
 }
 
 export function getStorageBaseUrl(): string {

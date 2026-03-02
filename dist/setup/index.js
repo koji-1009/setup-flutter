@@ -1053,14 +1053,14 @@ var require_util = __commonJS({
         }
         const port = url2.port != null ? url2.port : url2.protocol === "https:" ? 443 : 80;
         let origin = url2.origin != null ? url2.origin : `${url2.protocol || ""}//${url2.hostname || ""}:${port}`;
-        let path14 = url2.path != null ? url2.path : `${url2.pathname || ""}${url2.search || ""}`;
+        let path9 = url2.path != null ? url2.path : `${url2.pathname || ""}${url2.search || ""}`;
         if (origin[origin.length - 1] === "/") {
           origin = origin.slice(0, origin.length - 1);
         }
-        if (path14 && path14[0] !== "/") {
-          path14 = `/${path14}`;
+        if (path9 && path9[0] !== "/") {
+          path9 = `/${path9}`;
         }
-        return new URL(`${origin}${path14}`);
+        return new URL(`${origin}${path9}`);
       }
       if (!isHttpOrHttpsPrefixed(url2.origin || url2.protocol)) {
         throw new InvalidArgumentError("Invalid URL protocol: the URL must start with `http:` or `https:`.");
@@ -1511,39 +1511,39 @@ var require_diagnostics = __commonJS({
       });
       diagnosticsChannel.channel("undici:client:sendHeaders").subscribe((evt) => {
         const {
-          request: { method, path: path14, origin }
+          request: { method, path: path9, origin }
         } = evt;
-        debuglog("sending request to %s %s/%s", method, origin, path14);
+        debuglog("sending request to %s %s/%s", method, origin, path9);
       });
       diagnosticsChannel.channel("undici:request:headers").subscribe((evt) => {
         const {
-          request: { method, path: path14, origin },
+          request: { method, path: path9, origin },
           response: { statusCode }
         } = evt;
         debuglog(
           "received response to %s %s/%s - HTTP %d",
           method,
           origin,
-          path14,
+          path9,
           statusCode
         );
       });
       diagnosticsChannel.channel("undici:request:trailers").subscribe((evt) => {
         const {
-          request: { method, path: path14, origin }
+          request: { method, path: path9, origin }
         } = evt;
-        debuglog("trailers received from %s %s/%s", method, origin, path14);
+        debuglog("trailers received from %s %s/%s", method, origin, path9);
       });
       diagnosticsChannel.channel("undici:request:error").subscribe((evt) => {
         const {
-          request: { method, path: path14, origin },
+          request: { method, path: path9, origin },
           error: error2
         } = evt;
         debuglog(
           "request to %s %s/%s errored - %s",
           method,
           origin,
-          path14,
+          path9,
           error2.message
         );
       });
@@ -1592,9 +1592,9 @@ var require_diagnostics = __commonJS({
         });
         diagnosticsChannel.channel("undici:client:sendHeaders").subscribe((evt) => {
           const {
-            request: { method, path: path14, origin }
+            request: { method, path: path9, origin }
           } = evt;
-          debuglog("sending request to %s %s/%s", method, origin, path14);
+          debuglog("sending request to %s %s/%s", method, origin, path9);
         });
       }
       diagnosticsChannel.channel("undici:websocket:open").subscribe((evt) => {
@@ -1657,7 +1657,7 @@ var require_request = __commonJS({
     var kHandler = /* @__PURE__ */ Symbol("handler");
     var Request = class {
       constructor(origin, {
-        path: path14,
+        path: path9,
         method,
         body: body2,
         headers,
@@ -1672,11 +1672,11 @@ var require_request = __commonJS({
         expectContinue,
         servername
       }, handler) {
-        if (typeof path14 !== "string") {
+        if (typeof path9 !== "string") {
           throw new InvalidArgumentError("path must be a string");
-        } else if (path14[0] !== "/" && !(path14.startsWith("http://") || path14.startsWith("https://")) && method !== "CONNECT") {
+        } else if (path9[0] !== "/" && !(path9.startsWith("http://") || path9.startsWith("https://")) && method !== "CONNECT") {
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
-        } else if (invalidPathRegex.test(path14)) {
+        } else if (invalidPathRegex.test(path9)) {
           throw new InvalidArgumentError("invalid request path");
         }
         if (typeof method !== "string") {
@@ -1739,7 +1739,7 @@ var require_request = __commonJS({
         this.completed = false;
         this.aborted = false;
         this.upgrade = upgrade || null;
-        this.path = query ? buildURL(path14, query) : path14;
+        this.path = query ? buildURL(path9, query) : path9;
         this.origin = origin;
         this.idempotent = idempotent == null ? method === "HEAD" || method === "GET" : idempotent;
         this.blocking = blocking == null ? false : blocking;
@@ -3978,11 +3978,11 @@ var require_util2 = __commonJS({
     var { isUint8Array } = require("node:util/types");
     var { webidl } = require_webidl();
     var supportedHashes = [];
-    var crypto8;
+    var crypto5;
     try {
-      crypto8 = require("node:crypto");
+      crypto5 = require("node:crypto");
       const possibleRelevantHashes = ["sha256", "sha384", "sha512"];
-      supportedHashes = crypto8.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
+      supportedHashes = crypto5.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
     } catch {
     }
     function responseURL(response) {
@@ -4255,7 +4255,7 @@ var require_util2 = __commonJS({
       }
     }
     function bytesMatch(bytes, metadataList) {
-      if (crypto8 === void 0) {
+      if (crypto5 === void 0) {
         return true;
       }
       const parsedMetadata = parseMetadata(metadataList);
@@ -4270,7 +4270,7 @@ var require_util2 = __commonJS({
       for (const item of metadata2) {
         const algorithm = item.algo;
         const expectedValue = item.hash;
-        let actualValue = crypto8.createHash(algorithm).update(bytes).digest("base64");
+        let actualValue = crypto5.createHash(algorithm).update(bytes).digest("base64");
         if (actualValue[actualValue.length - 1] === "=") {
           if (actualValue[actualValue.length - 2] === "=") {
             actualValue = actualValue.slice(0, -2);
@@ -5334,8 +5334,8 @@ var require_body = __commonJS({
     var { multipartFormDataParser } = require_formdata_parser();
     var random;
     try {
-      const crypto8 = require("node:crypto");
-      random = (max) => crypto8.randomInt(0, max);
+      const crypto5 = require("node:crypto");
+      random = (max) => crypto5.randomInt(0, max);
     } catch {
       random = (max) => Math.floor(Math.random(max));
     }
@@ -6252,7 +6252,7 @@ var require_client_h1 = __commonJS({
       return method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && method !== "TRACE" && method !== "CONNECT";
     }
     function writeH1(client, request) {
-      const { method, path: path14, host, upgrade, blocking, reset } = request;
+      const { method, path: path9, host, upgrade, blocking, reset } = request;
       let { body: body2, headers, contentLength: contentLength2 } = request;
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH" || method === "QUERY" || method === "PROPFIND" || method === "PROPPATCH";
       if (util5.isFormDataLike(body2)) {
@@ -6318,7 +6318,7 @@ var require_client_h1 = __commonJS({
       if (blocking) {
         socket[kBlocking] = true;
       }
-      let header = `${method} ${path14} HTTP/1.1\r
+      let header = `${method} ${path9} HTTP/1.1\r
 `;
       if (typeof host === "string") {
         header += `host: ${host}\r
@@ -6844,7 +6844,7 @@ var require_client_h2 = __commonJS({
     }
     function writeH2(client, request) {
       const session = client[kHTTP2Session];
-      const { method, path: path14, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
+      const { method, path: path9, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
       let { body: body2 } = request;
       if (upgrade) {
         util5.errorRequest(client, request, new Error("Upgrade not supported for H2"));
@@ -6911,7 +6911,7 @@ var require_client_h2 = __commonJS({
         });
         return true;
       }
-      headers[HTTP2_HEADER_PATH] = path14;
+      headers[HTTP2_HEADER_PATH] = path9;
       headers[HTTP2_HEADER_SCHEME] = "https";
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body2 && typeof body2.read === "function") {
@@ -7264,9 +7264,9 @@ var require_redirect_handler = __commonJS({
           return this.handler.onHeaders(statusCode, headers, resume, statusText);
         }
         const { origin, pathname, search } = util5.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin)));
-        const path14 = search ? `${pathname}${search}` : pathname;
+        const path9 = search ? `${pathname}${search}` : pathname;
         this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin);
-        this.opts.path = path14;
+        this.opts.path = path9;
         this.opts.origin = origin;
         this.opts.maxRedirections = 0;
         this.opts.query = null;
@@ -8500,10 +8500,10 @@ var require_proxy_agent = __commonJS({
         };
         const {
           origin,
-          path: path14 = "/",
+          path: path9 = "/",
           headers = {}
         } = opts;
-        opts.path = origin + path14;
+        opts.path = origin + path9;
         if (!("host" in headers) && !("Host" in headers)) {
           const { host } = new URL3(origin);
           headers.host = host;
@@ -10424,20 +10424,20 @@ var require_mock_utils = __commonJS({
       }
       return true;
     }
-    function safeUrl(path14) {
-      if (typeof path14 !== "string") {
-        return path14;
+    function safeUrl(path9) {
+      if (typeof path9 !== "string") {
+        return path9;
       }
-      const pathSegments = path14.split("?");
+      const pathSegments = path9.split("?");
       if (pathSegments.length !== 2) {
-        return path14;
+        return path9;
       }
       const qp = new URLSearchParams(pathSegments.pop());
       qp.sort();
       return [...pathSegments, qp.toString()].join("?");
     }
-    function matchKey(mockDispatch2, { path: path14, method, body: body2, headers }) {
-      const pathMatch = matchValue(mockDispatch2.path, path14);
+    function matchKey(mockDispatch2, { path: path9, method, body: body2, headers }) {
+      const pathMatch = matchValue(mockDispatch2.path, path9);
       const methodMatch = matchValue(mockDispatch2.method, method);
       const bodyMatch = typeof mockDispatch2.body !== "undefined" ? matchValue(mockDispatch2.body, body2) : true;
       const headersMatch = matchHeaders(mockDispatch2, headers);
@@ -10459,7 +10459,7 @@ var require_mock_utils = __commonJS({
     function getMockDispatch(mockDispatches, key) {
       const basePath = key.query ? buildURL(key.path, key.query) : key.path;
       const resolvedPath = typeof basePath === "string" ? safeUrl(basePath) : basePath;
-      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path14 }) => matchValue(safeUrl(path14), resolvedPath));
+      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path9 }) => matchValue(safeUrl(path9), resolvedPath));
       if (matchedMockDispatches.length === 0) {
         throw new MockNotMatchedError(`Mock dispatch not matched for path '${resolvedPath}'`);
       }
@@ -10497,9 +10497,9 @@ var require_mock_utils = __commonJS({
       }
     }
     function buildKey(opts) {
-      const { path: path14, method, body: body2, headers, query } = opts;
+      const { path: path9, method, body: body2, headers, query } = opts;
       return {
-        path: path14,
+        path: path9,
         method,
         body: body2,
         headers,
@@ -10962,10 +10962,10 @@ var require_pending_interceptors_formatter = __commonJS({
       }
       format(pendingInterceptors) {
         const withPrettyHeaders = pendingInterceptors.map(
-          ({ method, path: path14, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
+          ({ method, path: path9, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
             Method: method,
             Origin: origin,
-            Path: path14,
+            Path: path9,
             "Status code": statusCode,
             Persistent: persist ? PERSISTENT : NOT_PERSISTENT,
             Invocations: timesInvoked,
@@ -15846,9 +15846,9 @@ var require_util6 = __commonJS({
         }
       }
     }
-    function validateCookiePath(path14) {
-      for (let i = 0; i < path14.length; ++i) {
-        const code = path14.charCodeAt(i);
+    function validateCookiePath(path9) {
+      for (let i = 0; i < path9.length; ++i) {
+        const code = path9.charCodeAt(i);
         if (code < 32 || // exclude CTLs (0-31)
         code === 127 || // DEL
         code === 59) {
@@ -16739,13 +16739,13 @@ var require_frame = __commonJS({
     "use strict";
     var { maxUnsigned16Bit } = require_constants5();
     var BUFFER_SIZE = 16386;
-    var crypto8;
+    var crypto5;
     var buffer3 = null;
     var bufIdx = BUFFER_SIZE;
     try {
-      crypto8 = require("node:crypto");
+      crypto5 = require("node:crypto");
     } catch {
-      crypto8 = {
+      crypto5 = {
         // not full compatibility, but minimum.
         randomFillSync: function randomFillSync(buffer4, _offset, _size) {
           for (let i = 0; i < buffer4.length; ++i) {
@@ -16758,7 +16758,7 @@ var require_frame = __commonJS({
     function generateMask() {
       if (bufIdx === BUFFER_SIZE) {
         bufIdx = 0;
-        crypto8.randomFillSync(buffer3 ??= Buffer.allocUnsafe(BUFFER_SIZE), 0, BUFFER_SIZE);
+        crypto5.randomFillSync(buffer3 ??= Buffer.allocUnsafe(BUFFER_SIZE), 0, BUFFER_SIZE);
       }
       return [buffer3[bufIdx++], buffer3[bufIdx++], buffer3[bufIdx++], buffer3[bufIdx++]];
     }
@@ -16830,9 +16830,9 @@ var require_connection = __commonJS({
     var { Headers: Headers2, getHeadersList } = require_headers();
     var { getDecodeSplit } = require_util2();
     var { WebsocketFrameSend } = require_frame();
-    var crypto8;
+    var crypto5;
     try {
-      crypto8 = require("node:crypto");
+      crypto5 = require("node:crypto");
     } catch {
     }
     function establishWebSocketConnection(url2, protocols, client, ws, onEstablish, options) {
@@ -16852,7 +16852,7 @@ var require_connection = __commonJS({
         const headersList = getHeadersList(new Headers2(options.headers));
         request.headersList = headersList;
       }
-      const keyValue = crypto8.randomBytes(16).toString("base64");
+      const keyValue = crypto5.randomBytes(16).toString("base64");
       request.headersList.append("sec-websocket-key", keyValue);
       request.headersList.append("sec-websocket-version", "13");
       for (const protocol of protocols) {
@@ -16882,7 +16882,7 @@ var require_connection = __commonJS({
             return;
           }
           const secWSAccept = response.headersList.get("Sec-WebSocket-Accept");
-          const digest = crypto8.createHash("sha1").update(keyValue + uid).digest("base64");
+          const digest = crypto5.createHash("sha1").update(keyValue + uid).digest("base64");
           if (secWSAccept !== digest) {
             failWebsocketConnection(ws, "Incorrect hash received in Sec-WebSocket-Accept header.");
             return;
@@ -18442,11 +18442,11 @@ var require_undici = __commonJS({
           if (typeof opts.path !== "string") {
             throw new InvalidArgumentError("invalid opts.path");
           }
-          let path14 = opts.path;
+          let path9 = opts.path;
           if (!opts.path.startsWith("/")) {
-            path14 = `/${path14}`;
+            path9 = `/${path9}`;
           }
-          url2 = new URL(util5.parseOrigin(url2).origin + path14);
+          url2 = new URL(util5.parseOrigin(url2).origin + path9);
         } else {
           if (!opts) {
             opts = typeof url2 === "object" ? url2 : {};
@@ -18742,7 +18742,7 @@ var require_minimatch = __commonJS({
   "node_modules/minimatch/minimatch.js"(exports2, module2) {
     module2.exports = minimatch2;
     minimatch2.Minimatch = Minimatch2;
-    var path14 = (function() {
+    var path9 = (function() {
       try {
         return require("path");
       } catch (e) {
@@ -18750,7 +18750,7 @@ var require_minimatch = __commonJS({
     })() || {
       sep: "/"
     };
-    minimatch2.sep = path14.sep;
+    minimatch2.sep = path9.sep;
     var GLOBSTAR = minimatch2.GLOBSTAR = Minimatch2.GLOBSTAR = {};
     var expand = require_brace_expansion();
     var plTypes = {
@@ -18839,8 +18839,8 @@ var require_minimatch = __commonJS({
       assertValidPattern(pattern);
       if (!options) options = {};
       pattern = pattern.trim();
-      if (!options.allowWindowsEscape && path14.sep !== "/") {
-        pattern = pattern.split(path14.sep).join("/");
+      if (!options.allowWindowsEscape && path9.sep !== "/") {
+        pattern = pattern.split(path9.sep).join("/");
       }
       this.options = options;
       this.maxGlobstarRecursion = options.maxGlobstarRecursion !== void 0 ? options.maxGlobstarRecursion : 200;
@@ -19211,8 +19211,8 @@ var require_minimatch = __commonJS({
       if (this.empty) return f === "";
       if (f === "/" && partial) return true;
       var options = this.options;
-      if (path14.sep !== "/") {
-        f = f.split(path14.sep).join("/");
+      if (path9.sep !== "/") {
+        f = f.split(path9.sep).join("/");
       }
       f = f.split(slashSplit);
       this.debug(this.pattern, "split", f);
@@ -19983,8 +19983,8 @@ var require_major = __commonJS({
   "node_modules/semver/functions/major.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var major = (a, loose) => new SemVer(a, loose).major;
-    module2.exports = major;
+    var major2 = (a, loose) => new SemVer(a, loose).major;
+    module2.exports = major2;
   }
 });
 
@@ -19993,8 +19993,8 @@ var require_minor = __commonJS({
   "node_modules/semver/functions/minor.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var minor = (a, loose) => new SemVer(a, loose).minor;
-    module2.exports = minor;
+    var minor2 = (a, loose) => new SemVer(a, loose).minor;
+    module2.exports = minor2;
   }
 });
 
@@ -20230,12 +20230,12 @@ var require_coerce = __commonJS({
       if (match2 === null) {
         return null;
       }
-      const major = match2[2];
-      const minor = match2[3] || "0";
+      const major2 = match2[2];
+      const minor2 = match2[3] || "0";
       const patch = match2[4] || "0";
       const prerelease = options.includePrerelease && match2[5] ? `-${match2[5]}` : "";
       const build = options.includePrerelease && match2[6] ? `+${match2[6]}` : "";
-      return parse2(`${major}.${minor}.${patch}${prerelease}${build}`, options);
+      return parse2(`${major2}.${minor2}.${patch}${prerelease}${build}`, options);
     };
     module2.exports = coerce;
   }
@@ -20774,7 +20774,7 @@ var require_satisfies = __commonJS({
   "node_modules/semver/functions/satisfies.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
-    var satisfies3 = (version3, range2, options) => {
+    var satisfies4 = (version3, range2, options) => {
       try {
         range2 = new Range(range2, options);
       } catch (er) {
@@ -20782,7 +20782,7 @@ var require_satisfies = __commonJS({
       }
       return range2.test(version3);
     };
-    module2.exports = satisfies3;
+    module2.exports = satisfies4;
   }
 });
 
@@ -20937,7 +20937,7 @@ var require_outside = __commonJS({
     var Comparator = require_comparator();
     var { ANY } = Comparator;
     var Range = require_range();
-    var satisfies3 = require_satisfies();
+    var satisfies4 = require_satisfies();
     var gt2 = require_gt();
     var lt = require_lt();
     var lte = require_lte();
@@ -20964,7 +20964,7 @@ var require_outside = __commonJS({
         default:
           throw new TypeError('Must provide a hilo val of "<" or ">"');
       }
-      if (satisfies3(version3, range2, options)) {
+      if (satisfies4(version3, range2, options)) {
         return false;
       }
       for (let i = 0; i < range2.set.length; ++i) {
@@ -21036,7 +21036,7 @@ var require_intersects = __commonJS({
 var require_simplify = __commonJS({
   "node_modules/semver/ranges/simplify.js"(exports2, module2) {
     "use strict";
-    var satisfies3 = require_satisfies();
+    var satisfies4 = require_satisfies();
     var compare = require_compare();
     module2.exports = (versions, range2, options) => {
       const set = [];
@@ -21044,7 +21044,7 @@ var require_simplify = __commonJS({
       let prev = null;
       const v = versions.sort((a, b) => compare(a, b, options));
       for (const version3 of v) {
-        const included = satisfies3(version3, range2, options);
+        const included = satisfies4(version3, range2, options);
         if (included) {
           prev = version3;
           if (!first) {
@@ -21089,7 +21089,7 @@ var require_subset = __commonJS({
     var Range = require_range();
     var Comparator = require_comparator();
     var { ANY } = Comparator;
-    var satisfies3 = require_satisfies();
+    var satisfies4 = require_satisfies();
     var compare = require_compare();
     var subset = (sub, dom, options = {}) => {
       if (sub === dom) {
@@ -21158,14 +21158,14 @@ var require_subset = __commonJS({
         }
       }
       for (const eq of eqSet) {
-        if (gt2 && !satisfies3(eq, String(gt2), options)) {
+        if (gt2 && !satisfies4(eq, String(gt2), options)) {
           return null;
         }
-        if (lt && !satisfies3(eq, String(lt), options)) {
+        if (lt && !satisfies4(eq, String(lt), options)) {
           return null;
         }
         for (const c of dom) {
-          if (!satisfies3(eq, String(c), options)) {
+          if (!satisfies4(eq, String(c), options)) {
             return false;
           }
         }
@@ -21192,7 +21192,7 @@ var require_subset = __commonJS({
             if (higher === c && higher !== gt2) {
               return false;
             }
-          } else if (gt2.operator === ">=" && !satisfies3(gt2.semver, String(c), options)) {
+          } else if (gt2.operator === ">=" && !satisfies4(gt2.semver, String(c), options)) {
             return false;
           }
         }
@@ -21207,7 +21207,7 @@ var require_subset = __commonJS({
             if (lower === c && lower !== lt) {
               return false;
             }
-          } else if (lt.operator === "<=" && !satisfies3(lt.semver, String(c), options)) {
+          } else if (lt.operator === "<=" && !satisfies4(lt.semver, String(c), options)) {
             return false;
           }
         }
@@ -21257,8 +21257,8 @@ var require_semver2 = __commonJS({
     var clean3 = require_clean();
     var inc = require_inc();
     var diff = require_diff();
-    var major = require_major();
-    var minor = require_minor();
+    var major2 = require_major();
+    var minor2 = require_minor();
     var patch = require_patch();
     var prerelease = require_prerelease();
     var compare = require_compare();
@@ -21277,7 +21277,7 @@ var require_semver2 = __commonJS({
     var coerce = require_coerce();
     var Comparator = require_comparator();
     var Range = require_range();
-    var satisfies3 = require_satisfies();
+    var satisfies4 = require_satisfies();
     var toComparators = require_to_comparators();
     var maxSatisfying = require_max_satisfying();
     var minSatisfying = require_min_satisfying();
@@ -21295,8 +21295,8 @@ var require_semver2 = __commonJS({
       clean: clean3,
       inc,
       diff,
-      major,
-      minor,
+      major: major2,
+      minor: minor2,
       patch,
       prerelease,
       compare,
@@ -21315,7 +21315,7 @@ var require_semver2 = __commonJS({
       coerce,
       Comparator,
       Range,
-      satisfies: satisfies3,
+      satisfies: satisfies4,
       toComparators,
       maxSatisfying,
       minSatisfying,
@@ -21819,7 +21819,7 @@ var require_has_flag = __commonJS({
 var require_supports_color = __commonJS({
   "node_modules/supports-color/index.js"(exports2, module2) {
     "use strict";
-    var os9 = require("os");
+    var os7 = require("os");
     var tty = require("tty");
     var hasFlag = require_has_flag();
     var { env } = process;
@@ -21867,7 +21867,7 @@ var require_supports_color = __commonJS({
         return min;
       }
       if (process.platform === "win32") {
-        const osRelease = os9.release().split(".");
+        const osRelease = os7.release().split(".");
         if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
           return Number(osRelease[2]) >= 14931 ? 3 : 2;
         }
@@ -27040,7 +27040,7 @@ __export(main_exports, {
   run: () => run
 });
 module.exports = __toCommonJS(main_exports);
-var crypto7 = __toESM(require("node:crypto"));
+var import_node_crypto6 = require("node:crypto");
 
 // node_modules/@actions/core/lib/command.js
 var os = __toESM(require("os"), 1);
@@ -29046,9 +29046,9 @@ function saveState(name, value) {
 }
 
 // src/cache.ts
-var crypto4 = __toESM(require("node:crypto"));
-var fs6 = __toESM(require("node:fs"));
-var path8 = __toESM(require("node:path"));
+var import_node_crypto4 = require("node:crypto");
+var import_node_fs2 = require("node:fs");
+var import_node_path = require("node:path");
 
 // node_modules/@actions/cache/lib/cache.js
 var path7 = __toESM(require("path"), 1);
@@ -33243,15 +33243,15 @@ function getRequestUrl(baseUri, operationSpec, operationArguments, fallbackObjec
   let isAbsolutePath = false;
   let requestUrl = replaceAll(baseUri, urlReplacements);
   if (operationSpec.path) {
-    let path14 = replaceAll(operationSpec.path, urlReplacements);
-    if (operationSpec.path === "/{nextLink}" && path14.startsWith("/")) {
-      path14 = path14.substring(1);
+    let path9 = replaceAll(operationSpec.path, urlReplacements);
+    if (operationSpec.path === "/{nextLink}" && path9.startsWith("/")) {
+      path9 = path9.substring(1);
     }
-    if (isAbsoluteUrl(path14)) {
-      requestUrl = path14;
+    if (isAbsoluteUrl(path9)) {
+      requestUrl = path9;
       isAbsolutePath = true;
     } else {
-      requestUrl = appendPath(requestUrl, path14);
+      requestUrl = appendPath(requestUrl, path9);
     }
   }
   const { queryParams, sequenceParams } = calculateQueryParameters(operationSpec, operationArguments, fallbackObject);
@@ -33297,9 +33297,9 @@ function appendPath(url2, pathToAppend) {
   }
   const searchStart = pathToAppend.indexOf("?");
   if (searchStart !== -1) {
-    const path14 = pathToAppend.substring(0, searchStart);
+    const path9 = pathToAppend.substring(0, searchStart);
     const search = pathToAppend.substring(searchStart + 1);
-    newPath = newPath + path14;
+    newPath = newPath + path9;
     if (search) {
       parsedUrl.search = parsedUrl.search ? `${parsedUrl.search}&${search}` : search;
     }
@@ -37250,9 +37250,9 @@ var StorageSharedKeyCredentialPolicy = class extends CredentialPolicy {
    * @param request -
    */
   getCanonicalizedResourceString(request) {
-    const path14 = getURLPath(request.url) || "/";
+    const path9 = getURLPath(request.url) || "/";
     let canonicalizedResourceString = "";
-    canonicalizedResourceString += `/${this.factory.accountName}${path14}`;
+    canonicalizedResourceString += `/${this.factory.accountName}${path9}`;
     const queries = getURLQueries(request.url);
     const lowercaseQueries = {};
     if (queries) {
@@ -37742,9 +37742,9 @@ function storageSharedKeyCredentialPolicy(options) {
     return canonicalizedHeadersStringToSign;
   }
   function getCanonicalizedResourceString(request) {
-    const path14 = getURLPath(request.url) || "/";
+    const path9 = getURLPath(request.url) || "/";
     let canonicalizedResourceString = "";
-    canonicalizedResourceString += `/${options.accountName}${path14}`;
+    canonicalizedResourceString += `/${options.accountName}${path9}`;
     const queries = getURLQueries(request.url);
     const lowercaseQueries = {};
     if (queries) {
@@ -51685,10 +51685,10 @@ var StorageContextClient = class extends StorageClient {
 // node_modules/@azure/storage-blob/dist/esm/utils/utils.common.js
 function escapeURLPath(url2) {
   const urlParsed = new URL(url2);
-  let path14 = urlParsed.pathname;
-  path14 = path14 || "/";
-  path14 = escape(path14);
-  urlParsed.pathname = path14;
+  let path9 = urlParsed.pathname;
+  path9 = path9 || "/";
+  path9 = escape(path9);
+  urlParsed.pathname = path9;
   return urlParsed.toString();
 }
 function getProxyUriFromDevConnString(connectionString) {
@@ -51773,9 +51773,9 @@ function escape(text) {
 }
 function appendToURLPath(url2, name) {
   const urlParsed = new URL(url2);
-  let path14 = urlParsed.pathname;
-  path14 = path14 ? path14.endsWith("/") ? `${path14}${name}` : `${path14}/${name}` : name;
-  urlParsed.pathname = path14;
+  let path9 = urlParsed.pathname;
+  path9 = path9 ? path9.endsWith("/") ? `${path9}${name}` : `${path9}/${name}` : name;
+  urlParsed.pathname = path9;
   return urlParsed.toString();
 }
 function setURLParameter2(url2, name, value) {
@@ -60246,25 +60246,25 @@ function restoreCacheV2(paths_1, primaryKey_1, restoreKeys_1, options_1) {
 }
 
 // src/cache.ts
-function sdkCacheKey(os9, channel, version3, arch2, gitConfig) {
+function sdkCacheKey(os7, channel, version3, arch2, gitConfig) {
   if (gitConfig) {
-    return `flutter-sdk-${os9}-git-${gitConfig.commitHash}-${arch2}-${gitConfig.urlHash}`;
+    return `flutter-sdk-${os7}-git-${gitConfig.commitHash}-${arch2}-${gitConfig.urlHash}`;
   }
-  return `flutter-sdk-${os9}-${channel}-${version3}-${arch2}`;
+  return `flutter-sdk-${os7}-${channel}-${version3}-${arch2}`;
 }
 function sdkCachePath(version3, channel, arch2, gitConfig) {
   const toolCache = process.env.RUNNER_TOOL_CACHE || "/opt/hostedtoolcache";
   if (gitConfig) {
-    return path8.join(
+    return (0, import_node_path.join)(
       toolCache,
       "flutter",
       `git-${gitConfig.commitHash.slice(0, 7)}-${arch2}`
     );
   }
-  return path8.join(toolCache, "flutter", `${version3}-${channel}-${arch2}`);
+  return (0, import_node_path.join)(toolCache, "flutter", `${version3}-${channel}-${arch2}`);
 }
 function isValidLocalSdk(sdkPath) {
-  return fs6.existsSync(path8.join(sdkPath, "bin", "flutter"));
+  return (0, import_node_fs2.existsSync)((0, import_node_path.join)(sdkPath, "bin", "flutter"));
 }
 async function restoreSdkCache(sdkPath, key) {
   if (isValidLocalSdk(sdkPath)) {
@@ -60273,6 +60273,9 @@ async function restoreSdkCache(sdkPath, key) {
   }
   try {
     const hit = await restoreCache([sdkPath], key);
+    if (hit !== void 0) {
+      info("SDK cache hit");
+    }
     return hit !== void 0;
   } catch (e) {
     warning(`SDK cache restore failed: ${e}`);
@@ -60282,12 +60285,12 @@ async function restoreSdkCache(sdkPath, key) {
 function pubCacheKey(lockfilePath) {
   let content;
   try {
-    content = fs6.readFileSync(lockfilePath);
+    content = (0, import_node_fs2.readFileSync)(lockfilePath);
   } catch {
     info(`${lockfilePath} not found, skipping pub cache`);
     return null;
   }
-  const hash = crypto4.createHash("sha256").update(content).digest("hex").slice(0, 16);
+  const hash = (0, import_node_crypto4.createHash)("sha256").update(content).digest("hex").slice(0, 16);
   return `flutter-pub-${hash}`;
 }
 function getPubCachePaths(pubCachePath) {
@@ -60296,6 +60299,9 @@ function getPubCachePaths(pubCachePath) {
 async function restorePubCache(paths, key) {
   try {
     const hit = await restoreCache(paths, key);
+    if (hit !== void 0) {
+      info("Pub cache hit");
+    }
     return hit !== void 0;
   } catch (e) {
     warning(`Pub cache restore failed: ${e}`);
@@ -60304,7 +60310,7 @@ async function restorePubCache(paths, key) {
 }
 
 // src/git-source.ts
-var path9 = __toESM(require("node:path"));
+var import_node_path2 = require("node:path");
 var FLUTTER_ORIGIN = "https://github.com/flutter/flutter";
 var HASH_PATTERN = /^[0-9a-f]{7,40}$/;
 var FULL_HASH_PATTERN = /^[0-9a-f]{40}$/;
@@ -60328,6 +60334,7 @@ async function resolveGitRef(url2, ref, manifest) {
       return { commitHash: byHash.hash, version: byHash.version };
     }
   }
+  info("Resolving ref via git ls-remote...");
   let output = "";
   await exec("git", ["ls-remote", url2], {
     listeners: {
@@ -60348,39 +60355,33 @@ async function resolveGitRef(url2, ref, manifest) {
   throw new Error(`Could not resolve ref '${ref}' in ${url2}`);
 }
 async function installFromGit(url2, ref, sdkPath, commitHash) {
+  info(`Cloning Flutter from ${url2} (ref: ${ref})...`);
   if (FULL_HASH_PATTERN.test(commitHash) && ref === commitHash) {
     await exec("git", ["clone", url2, sdkPath]);
     await exec("git", ["-C", sdkPath, "checkout", commitHash]);
   } else {
-    await exec("git", [
-      "clone",
-      "--depth",
-      "1",
-      "--branch",
-      ref,
-      url2,
-      sdkPath
-    ]);
+    await exec("git", ["clone", "--depth", "1", "--branch", ref, url2, sdkPath]);
   }
-  const flutterBin = path9.join(sdkPath, "bin", "flutter");
+  info("Running flutter precache...");
+  const flutterBin = (0, import_node_path2.join)(sdkPath, "bin", "flutter");
   await exec(flutterBin, ["precache"]);
 }
 
 // src/installer.ts
-var crypto6 = __toESM(require("node:crypto"));
-var fs7 = __toESM(require("node:fs"));
-var os7 = __toESM(require("node:os"));
-var path11 = __toESM(require("node:path"));
+var import_node_crypto5 = require("node:crypto");
+var import_node_fs3 = require("node:fs");
+var import_node_os3 = require("node:os");
+var import_node_path3 = require("node:path");
 var import_promises = require("node:stream/promises");
 
 // node_modules/@actions/tool-cache/lib/tool-cache.js
-var crypto5 = __toESM(require("crypto"), 1);
+var crypto4 = __toESM(require("crypto"), 1);
 
 // node_modules/@actions/tool-cache/lib/manifest.js
 var semver2 = __toESM(require_semver2(), 1);
 
 // node_modules/@actions/tool-cache/lib/tool-cache.js
-var path10 = __toESM(require("path"), 1);
+var path8 = __toESM(require("path"), 1);
 var semver3 = __toESM(require_semver2(), 1);
 var import_assert2 = require("assert");
 var __awaiter15 = function(thisArg, _arguments, P, generator) {
@@ -60529,7 +60530,7 @@ function extractZipNix(file, dest) {
 function _createExtractFolder(dest) {
   return __awaiter15(this, void 0, void 0, function* () {
     if (!dest) {
-      dest = path10.join(_getTempDirectory(), crypto5.randomUUID());
+      dest = path8.join(_getTempDirectory(), crypto4.randomUUID());
     }
     yield mkdirP(dest);
     return dest;
@@ -60548,12 +60549,9 @@ async function downloadWithHash(url2) {
   if (response.message.statusCode === void 0 || response.message.statusCode < 200 || response.message.statusCode >= 300) {
     throw new Error(`Download failed: HTTP ${response.message.statusCode}`);
   }
-  const tmpFile = path11.join(
-    os7.tmpdir(),
-    `flutter-${crypto6.randomUUID()}.archive`
-  );
-  const hash = crypto6.createHash("sha256");
-  const fileStream = fs7.createWriteStream(tmpFile);
+  const tmpFile = (0, import_node_path3.join)((0, import_node_os3.tmpdir)(), `flutter-${(0, import_node_crypto5.randomUUID)()}.archive`);
+  const hash = (0, import_node_crypto5.createHash)("sha256");
+  const fileStream = (0, import_node_fs3.createWriteStream)(tmpFile);
   const contentLength2 = Number(response.message.headers["content-length"] || 0);
   let downloaded = 0;
   let nextThreshold = 10;
@@ -60601,29 +60599,31 @@ async function installFromArchive(resolved, sdkPath, platform2) {
     resolved.downloadUrl
   );
   try {
+    info("Verifying archive checksum...");
     if (actual !== resolved.sha256) {
       throw new Error(
         `SHA-256 mismatch: expected ${resolved.sha256}, got ${actual}`
       );
     }
-    const extractParent = path11.dirname(sdkPath);
+    info("Extracting archive...");
+    const extractParent = (0, import_node_path3.dirname)(sdkPath);
     await mkdirP(extractParent);
     const extractDir = platform2 === "linux" ? await extractTar2(tmpFile, extractParent, ["xJ"]) : await extractZip(tmpFile, extractParent);
-    await mv(path11.join(extractDir, "flutter"), sdkPath);
+    await mv((0, import_node_path3.join)(extractDir, "flutter"), sdkPath);
   } finally {
     await rmRF(tmpFile);
   }
   return sdkPath;
 }
 function setupPath(sdkPath) {
-  addPath(path11.join(sdkPath, "bin"));
-  addPath(path11.join(sdkPath, "bin", "cache", "dart-sdk", "bin"));
+  addPath((0, import_node_path3.join)(sdkPath, "bin"));
+  addPath((0, import_node_path3.join)(sdkPath, "bin", "cache", "dart-sdk", "bin"));
   exportVariable("FLUTTER_ROOT", sdkPath);
 }
 
 // src/utils.ts
-var os8 = __toESM(require("node:os"));
-var path12 = __toESM(require("node:path"));
+var import_node_os4 = require("node:os");
+var import_node_path4 = require("node:path");
 function getPlatform() {
   switch (process.platform) {
     case "linux":
@@ -60654,9 +60654,9 @@ function getPubCachePath() {
   if (process.env.PUB_CACHE) return process.env.PUB_CACHE;
   const platform2 = getPlatform();
   if (platform2 === "windows") {
-    return path12.join(process.env.LOCALAPPDATA || "", "Pub", "Cache");
+    return (0, import_node_path4.join)(process.env.LOCALAPPDATA || "", "Pub", "Cache");
   }
-  return path12.join(os8.homedir(), ".pub-cache");
+  return (0, import_node_path4.join)((0, import_node_os4.homedir)(), ".pub-cache");
 }
 function getStorageBaseUrl() {
   return process.env.FLUTTER_STORAGE_BASE_URL || "https://storage.googleapis.com";
@@ -60680,11 +60680,11 @@ function parseVersionSpec(input) {
   }
   if (/^\d+\.x$/.test(trimmed) || /^\d+\.\d+\.x$/.test(trimmed)) {
     const parts = trimmed.split(".");
-    const major = parseInt(parts[0], 10);
+    const maj = parseInt(parts[0], 10);
     if (parts.length >= 2 && parts[1] !== "x") {
-      return { type: "range", major, minor: parseInt(parts[1], 10) };
+      return { type: "range", major: maj, minor: parseInt(parts[1], 10) };
     }
-    return { type: "range", major };
+    return { type: "range", major: maj };
   }
   if (/^\d+\.\d+\.\d+/.test(trimmed)) {
     return { type: "exact", version: trimmed };
@@ -60692,6 +60692,7 @@ function parseVersionSpec(input) {
   return { type: "ref", ref: trimmed };
 }
 async function fetchManifest(platform2) {
+  info("Fetching Flutter release manifest...");
   const url2 = getManifestUrl(platform2);
   const http3 = new HttpClient("setup-flutter");
   const response = await http3.getJson(url2);
@@ -60719,9 +60720,9 @@ function resolveFromManifest(manifest, spec, channel, arch2) {
         matched = release.version === spec.version;
         break;
       case "range": {
-        const major = import_semver.default.major(release.version);
-        const minor = import_semver.default.minor(release.version);
-        matched = major === spec.major && (spec.minor === void 0 || minor === spec.minor);
+        const maj = (0, import_semver.major)(release.version);
+        const min = (0, import_semver.minor)(release.version);
+        matched = maj === spec.major && (spec.minor === void 0 || min === spec.minor);
         break;
       }
       case "any":
@@ -60729,7 +60730,7 @@ function resolveFromManifest(manifest, spec, channel, arch2) {
         matched = true;
         break;
       case "constraint":
-        matched = import_semver.default.satisfies(release.version, spec.range);
+        matched = (0, import_semver.satisfies)(release.version, spec.range);
         break;
       case "ref":
         throw new Error("ref spec cannot be used with release mode");
@@ -60750,20 +60751,20 @@ function resolveFromManifest(manifest, spec, channel, arch2) {
 }
 
 // src/version-file.ts
-var fs8 = __toESM(require("node:fs"));
-var path13 = __toESM(require("node:path"));
+var import_node_fs4 = require("node:fs");
+var import_node_path5 = require("node:path");
 function readVersionFile(filePath, flavor) {
-  const basename4 = path13.basename(filePath);
-  if (basename4 === "pubspec.yaml" || basename4 === "pubspec.yml") {
+  const name = (0, import_node_path5.basename)(filePath);
+  if (name === "pubspec.yaml" || name === "pubspec.yml") {
     return readPubspec(filePath);
   }
-  if (basename4 === ".fvmrc") {
+  if (name === ".fvmrc") {
     return readFvmrc(filePath, flavor);
   }
-  throw new Error(`Unsupported version file: ${basename4}`);
+  throw new Error(`Unsupported version file: ${name}`);
 }
 function readPubspec(filePath) {
-  const content = fs8.readFileSync(filePath, "utf8");
+  const content = (0, import_node_fs4.readFileSync)(filePath, "utf8");
   const lines = content.split("\n");
   let inEnvironment = false;
   for (const line of lines) {
@@ -60793,7 +60794,7 @@ function readPubspec(filePath) {
   throw new Error("pubspec.yaml does not contain environment.flutter");
 }
 function readFvmrc(filePath, flavor) {
-  const content = fs8.readFileSync(filePath, "utf8");
+  const content = (0, import_node_fs4.readFileSync)(filePath, "utf8");
   const json = JSON.parse(content);
   if (flavor) {
     const flavorVersion = json.flavors?.[flavor];
@@ -60823,6 +60824,7 @@ async function run() {
     const dryRun = getBooleanInput("dry-run");
     const platform2 = getPlatform();
     const arch2 = getArch(archInput || void 0);
+    info(`Detected platform: ${platform2}/${arch2}`);
     let versionString = "";
     if (flutterVersion) {
       versionString = flutterVersion;
@@ -60832,12 +60834,14 @@ async function run() {
         );
       }
     } else if (flutterVersionFile) {
+      info(`Reading version from ${flutterVersionFile}`);
       versionString = readVersionFile(
         flutterVersionFile,
         fvmFlavor || void 0
       );
     }
     const spec = parseVersionSpec(versionString);
+    info(`Version spec: ${JSON.stringify(spec)} (channel: ${channelInput})`);
     if (spec.type === "channel") {
       if (spec.channel !== channelInput) {
         warning(
@@ -60858,6 +60862,9 @@ async function run() {
         );
       }
       resolved = result;
+      info(
+        `Resolved Flutter ${resolved.version} (Dart ${resolved.dartVersion}) on ${resolved.channel}/${resolved.arch}`
+      );
     } else {
       switch (spec.type) {
         case "channel":
@@ -60879,6 +60886,7 @@ async function run() {
       const manifest = useManifest ? await fetchManifest(platform2) : void 0;
       const gitResult = await resolveGitRef(gitSourceUrl, gitRef, manifest);
       gitCommitHash = gitResult.commitHash;
+      info(`Resolved git ref '${gitRef}' -> ${gitCommitHash}`);
       resolved = {
         version: gitResult.version || gitRef,
         channel: channelInput,
@@ -60904,9 +60912,10 @@ async function run() {
     );
     let sdkHit = false;
     if (cacheSdk) {
+      info("Restoring SDK cache...");
       const gitCacheConfig = gitCommitHash ? {
         commitHash: gitCommitHash,
-        urlHash: crypto7.createHash("sha256").update(gitSourceUrl).digest("hex").slice(0, 8)
+        urlHash: (0, import_node_crypto6.createHash)("sha256").update(gitSourceUrl).digest("hex").slice(0, 8)
       } : void 0;
       const key = sdkCacheKey(
         platform2,
@@ -60930,15 +60939,21 @@ async function run() {
           gitCommitHash
         );
       }
+      info(`Flutter SDK installed to ${sdkDir}`);
     }
+    info("Configuring environment...");
     setupPath(sdkDir);
     const pubCachePath = getPubCachePath();
     exportVariable("PUB_CACHE", pubCachePath);
     let pubHit = false;
     if (cachePub) {
+      info("Restoring pub cache...");
       const pubKey = pubCacheKey("pubspec.lock");
       if (pubKey) {
         pubHit = await restorePubCache(getPubCachePaths(pubCachePath), pubKey);
+        if (!pubHit) {
+          info("Pub cache miss");
+        }
         saveState("pubCacheKey", pubKey);
         saveState("pubCachePath", pubCachePath);
       }
@@ -60949,6 +60964,9 @@ async function run() {
     setOutput("cache-sdk-hit", sdkHit.toString());
     setOutput("cache-pub-hit", pubHit.toString());
     setOutput("architecture", arch2);
+    info(
+      `setup-flutter complete: Flutter ${resolved.version} (Dart ${resolved.dartVersion})`
+    );
     saveState("installSuccess", "true");
     saveState("sdkCacheMiss", (!sdkHit).toString());
     saveState("pubCacheMiss", (!pubHit).toString());

@@ -1,8 +1,8 @@
-import * as crypto from "node:crypto";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as cache from "@actions/cache";
-import * as core from "@actions/core";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { restoreCache, saveCache } from "@actions/cache";
+import { info, warning } from "@actions/core";
 
 // --- SDK ---
 
@@ -27,17 +27,17 @@ export function sdkCachePath(
 ): string {
 	const toolCache = process.env.RUNNER_TOOL_CACHE || "/opt/hostedtoolcache";
 	if (gitConfig) {
-		return path.join(
+		return join(
 			toolCache,
 			"flutter",
 			`git-${gitConfig.commitHash.slice(0, 7)}-${arch}`,
 		);
 	}
-	return path.join(toolCache, "flutter", `${version}-${channel}-${arch}`);
+	return join(toolCache, "flutter", `${version}-${channel}-${arch}`);
 }
 
 export function isValidLocalSdk(sdkPath: string): boolean {
-	return fs.existsSync(path.join(sdkPath, "bin", "flutter"));
+	return existsSync(join(sdkPath, "bin", "flutter"));
 }
 
 export async function restoreSdkCache(
@@ -45,14 +45,17 @@ export async function restoreSdkCache(
 	key: string,
 ): Promise<boolean> {
 	if (isValidLocalSdk(sdkPath)) {
-		core.info("Flutter SDK found locally, skipping cache restore");
+		info("Flutter SDK found locally, skipping cache restore");
 		return true;
 	}
 	try {
-		const hit = await cache.restoreCache([sdkPath], key);
+		const hit = await restoreCache([sdkPath], key);
+		if (hit !== undefined) {
+			info("SDK cache hit");
+		}
 		return hit !== undefined;
 	} catch (e) {
-		core.warning(`SDK cache restore failed: ${e}`);
+		warning(`SDK cache restore failed: ${e}`);
 		return false;
 	}
 }
@@ -62,12 +65,12 @@ export async function saveSdkCache(
 	key: string,
 ): Promise<void> {
 	try {
-		await cache.saveCache([sdkPath], key);
+		await saveCache([sdkPath], key);
 	} catch (e) {
 		if (e instanceof Error && e.name === "ReserveCacheError") {
-			core.info(`SDK cache already exists for key: ${key}`);
+			info(`SDK cache already exists for key: ${key}`);
 		} else {
-			core.warning(`SDK cache save failed: ${e}`);
+			warning(`SDK cache save failed: ${e}`);
 		}
 	}
 }
@@ -77,16 +80,12 @@ export async function saveSdkCache(
 export function pubCacheKey(lockfilePath: string): string | null {
 	let content: Buffer;
 	try {
-		content = fs.readFileSync(lockfilePath);
+		content = readFileSync(lockfilePath);
 	} catch {
-		core.info(`${lockfilePath} not found, skipping pub cache`);
+		info(`${lockfilePath} not found, skipping pub cache`);
 		return null;
 	}
-	const hash = crypto
-		.createHash("sha256")
-		.update(content)
-		.digest("hex")
-		.slice(0, 16);
+	const hash = createHash("sha256").update(content).digest("hex").slice(0, 16);
 	return `flutter-pub-${hash}`;
 }
 
@@ -99,10 +98,13 @@ export async function restorePubCache(
 	key: string,
 ): Promise<boolean> {
 	try {
-		const hit = await cache.restoreCache(paths, key);
+		const hit = await restoreCache(paths, key);
+		if (hit !== undefined) {
+			info("Pub cache hit");
+		}
 		return hit !== undefined;
 	} catch (e) {
-		core.warning(`Pub cache restore failed: ${e}`);
+		warning(`Pub cache restore failed: ${e}`);
 		return false;
 	}
 }
@@ -112,20 +114,17 @@ export async function savePubCache(
 	key: string,
 ): Promise<void> {
 	const pubCachePath = paths[0];
-	if (
-		!fs.existsSync(pubCachePath) ||
-		fs.readdirSync(pubCachePath).length === 0
-	) {
-		core.info("Pub cache is empty, skipping save");
+	if (!existsSync(pubCachePath) || readdirSync(pubCachePath).length === 0) {
+		info("Pub cache is empty, skipping save");
 		return;
 	}
 	try {
-		await cache.saveCache(paths, key);
+		await saveCache(paths, key);
 	} catch (e) {
 		if (e instanceof Error && e.name === "ReserveCacheError") {
-			core.info(`Pub cache already exists for key: ${key}`);
+			info(`Pub cache already exists for key: ${key}`);
 		} else {
-			core.warning(`Pub cache save failed: ${e}`);
+			warning(`Pub cache save failed: ${e}`);
 		}
 	}
 }
