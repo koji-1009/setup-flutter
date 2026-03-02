@@ -60730,7 +60730,9 @@ function resolveFromManifest(manifest, spec, channel, arch2) {
         matched = true;
         break;
       case "constraint":
-        matched = (0, import_semver.satisfies)(release.version, spec.range);
+        matched = (0, import_semver.satisfies)(release.version, spec.range, {
+          includePrerelease: true
+        });
         break;
       case "ref":
         throw new Error("ref spec cannot be used with release mode");
