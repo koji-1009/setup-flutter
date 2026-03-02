@@ -28916,7 +28916,7 @@ function getState(name) {
 }
 
 // src/cache.ts
-var fs6 = __toESM(require("node:fs"));
+var import_node_fs2 = require("node:fs");
 
 // node_modules/@actions/cache/lib/cache.js
 var path10 = __toESM(require("path"), 1);
@@ -60732,7 +60732,7 @@ function getPubCachePaths(pubCachePath) {
 }
 async function savePubCache(paths, key) {
   const pubCachePath = paths[0];
-  if (!fs6.existsSync(pubCachePath) || fs6.readdirSync(pubCachePath).length === 0) {
+  if (!(0, import_node_fs2.existsSync)(pubCachePath) || (0, import_node_fs2.readdirSync)(pubCachePath).length === 0) {
     info("Pub cache is empty, skipping save");
     return;
   }
@@ -60763,6 +60763,7 @@ async function run() {
       const key = getState("sdkCacheKey");
       const sdkPath = getState("sdkCachePath");
       if (key && sdkPath) {
+        info("Saving SDK cache...");
         await saveSdkCache(sdkPath, key);
       }
     }
@@ -60770,6 +60771,7 @@ async function run() {
       const key = getState("pubCacheKey");
       const pubCachePath = getState("pubCachePath");
       if (key && pubCachePath) {
+        info("Saving pub cache...");
         await savePubCache(getPubCachePaths(pubCachePath), key);
       }
     }

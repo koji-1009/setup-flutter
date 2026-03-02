@@ -1,5 +1,6 @@
+import { info } from "@actions/core";
 import { HttpClient } from "@actions/http-client";
-import semver from "semver";
+import { major, minor, satisfies } from "semver";
 import { getManifestUrl } from "./utils";
 
 export interface FlutterRelease {
@@ -54,11 +55,11 @@ export function parseVersionSpec(input: string): VersionSpec {
 
 	if (/^\d+\.x$/.test(trimmed) || /^\d+\.\d+\.x$/.test(trimmed)) {
 		const parts = trimmed.split(".");
-		const major = parseInt(parts[0], 10);
+		const maj = parseInt(parts[0], 10);
 		if (parts.length >= 2 && parts[1] !== "x") {
-			return { type: "range", major, minor: parseInt(parts[1], 10) };
+			return { type: "range", major: maj, minor: parseInt(parts[1], 10) };
 		}
-		return { type: "range", major };
+		return { type: "range", major: maj };
 	}
 
 	if (/^\d+\.\d+\.\d+/.test(trimmed)) {
@@ -71,6 +72,7 @@ export function parseVersionSpec(input: string): VersionSpec {
 export async function fetchManifest(
 	platform: string,
 ): Promise<FlutterManifest> {
+	info("Fetching Flutter release manifest...");
 	const url = getManifestUrl(platform);
 	const http = new HttpClient("setup-flutter");
 	const response = await http.getJson<FlutterManifest>(url);
@@ -109,11 +111,11 @@ export function resolveFromManifest(
 				matched = release.version === spec.version;
 				break;
 			case "range": {
-				const major = semver.major(release.version);
-				const minor = semver.minor(release.version);
+				const maj = major(release.version);
+				const min = minor(release.version);
 				matched =
-					major === spec.major &&
-					(spec.minor === undefined || minor === spec.minor);
+					maj === spec.major &&
+					(spec.minor === undefined || min === spec.minor);
 				break;
 			}
 			case "any":
@@ -121,7 +123,7 @@ export function resolveFromManifest(
 				matched = true;
 				break;
 			case "constraint":
-				matched = semver.satisfies(release.version, spec.range);
+				matched = satisfies(release.version, spec.range);
 				break;
 			case "ref":
 				throw new Error("ref spec cannot be used with release mode");

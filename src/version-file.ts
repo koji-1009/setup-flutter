@@ -1,19 +1,19 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
+import { readFileSync } from "node:fs";
+import { basename } from "node:path";
 
 export function readVersionFile(filePath: string, flavor?: string): string {
-	const basename = path.basename(filePath);
-	if (basename === "pubspec.yaml" || basename === "pubspec.yml") {
+	const name = basename(filePath);
+	if (name === "pubspec.yaml" || name === "pubspec.yml") {
 		return readPubspec(filePath);
 	}
-	if (basename === ".fvmrc") {
+	if (name === ".fvmrc") {
 		return readFvmrc(filePath, flavor);
 	}
-	throw new Error(`Unsupported version file: ${basename}`);
+	throw new Error(`Unsupported version file: ${name}`);
 }
 
 export function readPubspec(filePath: string): string {
-	const content = fs.readFileSync(filePath, "utf8");
+	const content = readFileSync(filePath, "utf8");
 	const lines = content.split("\n");
 	let inEnvironment = false;
 	for (const line of lines) {
@@ -44,7 +44,7 @@ export function readPubspec(filePath: string): string {
 }
 
 export function readFvmrc(filePath: string, flavor?: string): string {
-	const content = fs.readFileSync(filePath, "utf8");
+	const content = readFileSync(filePath, "utf8");
 	const json = JSON.parse(content);
 	if (flavor) {
 		const flavorVersion = json.flavors?.[flavor];
