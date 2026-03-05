@@ -33,7 +33,11 @@ export function getPubCachePath(): string {
 	if (process.env.PUB_CACHE) return process.env.PUB_CACHE;
 	const platform = getPlatform();
 	if (platform === "windows") {
-		return join(process.env.LOCALAPPDATA || "", "Pub", "Cache");
+		const localAppData = process.env.LOCALAPPDATA;
+		if (!localAppData) {
+			throw new Error("LOCALAPPDATA environment variable is not set");
+		}
+		return join(localAppData, "Pub", "Cache");
 	}
 	return join(homedir(), ".pub-cache");
 }

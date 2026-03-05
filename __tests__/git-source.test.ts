@@ -123,7 +123,24 @@ describe("resolveGitRef (fork)", () => {
 		expect(result.commitHash).toBe("cafebabe5678");
 	});
 
-	it("returns hash directly if ref looks like a hash", async () => {
+	it("returns full hash directly if ref is a 40-char commit hash", async () => {
+		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
+			if (options?.listeners?.stdout) {
+				options.listeners.stdout(Buffer.from(""));
+			}
+			return 0;
+		});
+
+		const fullHash = "abcdef1234567890abcdef1234567890abcdef12";
+		const result = await resolveGitRef(
+			"https://github.com/user/flutter-fork.git",
+			fullHash,
+		);
+		expect(result.commitHash).toBe(fullHash);
+	});
+
+	it("returns short hash with warning when not found via ls-remote", async () => {
+		const { warning } = await import("@actions/core");
 		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
 			if (options?.listeners?.stdout) {
 				options.listeners.stdout(Buffer.from(""));
@@ -136,6 +153,9 @@ describe("resolveGitRef (fork)", () => {
 			"abc1234",
 		);
 		expect(result.commitHash).toBe("abc1234");
+		expect(warning).toHaveBeenCalledWith(
+			expect.stringContaining("short commit hash"),
+		);
 	});
 
 	it("throws when ref cannot be resolved", async () => {

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { info } from "@actions/core";
+import { info, warning } from "@actions/core";
 import { exec } from "@actions/exec";
 import type { FlutterManifest } from "./version";
 
@@ -54,6 +54,12 @@ export async function resolveGitRef(
 	}
 
 	if (HASH_PATTERN.test(ref)) {
+		if (!FULL_HASH_PATTERN.test(ref)) {
+			warning(
+				`Ref '${ref}' looks like a short commit hash but could not be verified via ls-remote. ` +
+					"If this is a typo, the subsequent git clone will fail.",
+			);
+		}
 		return { commitHash: ref };
 	}
 
