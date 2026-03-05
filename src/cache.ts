@@ -77,7 +77,7 @@ export async function saveSdkCache(
 
 // --- pub ---
 
-export function pubCacheKey(lockfilePath: string): string | null {
+export function pubCacheKey(os: string, lockfilePath: string): string | null {
 	let content: Buffer;
 	try {
 		content = readFileSync(lockfilePath);
@@ -86,7 +86,7 @@ export function pubCacheKey(lockfilePath: string): string | null {
 		return null;
 	}
 	const hash = createHash("sha256").update(content).digest("hex").slice(0, 16);
-	return `flutter-pub-${hash}`;
+	return `flutter-pub-${os}-${hash}`;
 }
 
 export function getPubCachePaths(pubCachePath: string): string[] {

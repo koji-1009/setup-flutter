@@ -180,7 +180,7 @@ export async function run(): Promise<void> {
 		let pubHit = false;
 		if (cachePub) {
 			info("Restoring pub cache...");
-			const pubKey = pubCacheKey("pubspec.lock");
+			const pubKey = pubCacheKey(platform, "pubspec.lock");
 			if (pubKey) {
 				pubHit = await restorePubCache(getPubCachePaths(pubCachePath), pubKey);
 				if (!pubHit) {

@@ -196,19 +196,26 @@ describe("saveSdkCache", () => {
 describe("pubCacheKey", () => {
 	it("returns key when lockfile exists", () => {
 		const lockfilePath = join(fixturesDir, "pubspec.lock");
-		const key = pubCacheKey(lockfilePath);
-		expect(key).toMatch(/^flutter-pub-[a-f0-9]{16}$/);
+		const key = pubCacheKey("linux", lockfilePath);
+		expect(key).toMatch(/^flutter-pub-linux-[a-f0-9]{16}$/);
 	});
 
 	it("returns null when lockfile does not exist", () => {
-		const key = pubCacheKey("/nonexistent/pubspec.lock");
+		const key = pubCacheKey("linux", "/nonexistent/pubspec.lock");
 		expect(key).toBeNull();
 		expect(info).toHaveBeenCalledWith(expect.stringContaining("not found"));
 	});
 
 	it("returns different key for different lockfile content", () => {
-		const key1 = pubCacheKey(join(fixturesDir, "pubspec.lock"));
-		const key2 = pubCacheKey(join(fixturesDir, "pubspec-alt.lock"));
+		const key1 = pubCacheKey("linux", join(fixturesDir, "pubspec.lock"));
+		const key2 = pubCacheKey("linux", join(fixturesDir, "pubspec-alt.lock"));
+		expect(key1).not.toBe(key2);
+	});
+
+	it("returns different key for different os", () => {
+		const lockfilePath = join(fixturesDir, "pubspec.lock");
+		const key1 = pubCacheKey("linux", lockfilePath);
+		const key2 = pubCacheKey("macos", lockfilePath);
 		expect(key1).not.toBe(key2);
 	});
 });
