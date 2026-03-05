@@ -108,11 +108,13 @@ describe("getPubCachePath", () => {
 		expect(getPubCachePath()).toBe(expected);
 	});
 
-	it("returns Pub/Cache with empty path when LOCALAPPDATA is unset on windows", () => {
+	it("throws when LOCALAPPDATA is unset on windows", () => {
 		delete process.env.PUB_CACHE;
 		delete process.env.LOCALAPPDATA;
 		Object.defineProperty(process, "platform", { value: "win32" });
-		expect(getPubCachePath()).toBe(join("", "Pub", "Cache"));
+		expect(() => getPubCachePath()).toThrow(
+			"LOCALAPPDATA environment variable is not set",
+		);
 	});
 });
 

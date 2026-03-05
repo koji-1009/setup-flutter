@@ -60350,6 +60350,11 @@ async function resolveGitRef(url2, ref, manifest) {
     }
   }
   if (HASH_PATTERN.test(ref)) {
+    if (!FULL_HASH_PATTERN.test(ref)) {
+      warning(
+        `Ref '${ref}' looks like a short commit hash but could not be verified via ls-remote. If this is a typo, the subsequent git clone will fail.`
+      );
+    }
     return { commitHash: ref };
   }
   throw new Error(`Could not resolve ref '${ref}' in ${url2}`);
@@ -60653,7 +60658,11 @@ function getPubCachePath() {
   if (process.env.PUB_CACHE) return process.env.PUB_CACHE;
   const platform2 = getPlatform();
   if (platform2 === "windows") {
-    return (0, import_node_path4.join)(process.env.LOCALAPPDATA || "", "Pub", "Cache");
+    const localAppData = process.env.LOCALAPPDATA;
+    if (!localAppData) {
+      throw new Error("LOCALAPPDATA environment variable is not set");
+    }
+    return (0, import_node_path4.join)(localAppData, "Pub", "Cache");
   }
   return (0, import_node_path4.join)((0, import_node_os4.homedir)(), ".pub-cache");
 }

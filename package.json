@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"description": "Set up Flutter SDK for GitHub Actions",
 	"scripts": {
-		"build": "tsc --noEmit",
+		"build": "tsc",
 		"test": "vitest run --reporter=verbose",
 		"test:coverage": "vitest run --coverage",
 		"lint": "biome check .",
