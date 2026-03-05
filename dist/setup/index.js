@@ -60282,7 +60282,7 @@ async function restoreSdkCache(sdkPath, key) {
     return false;
   }
 }
-function pubCacheKey(lockfilePath) {
+function pubCacheKey(os7, lockfilePath) {
   let content;
   try {
     content = (0, import_node_fs2.readFileSync)(lockfilePath);
@@ -60291,7 +60291,7 @@ function pubCacheKey(lockfilePath) {
     return null;
   }
   const hash = (0, import_node_crypto4.createHash)("sha256").update(content).digest("hex").slice(0, 16);
-  return `flutter-pub-${hash}`;
+  return `flutter-pub-${os7}-${hash}`;
 }
 function getPubCachePaths(pubCachePath) {
   return [pubCachePath];
@@ -60947,7 +60947,7 @@ async function run() {
     let pubHit = false;
     if (cachePub) {
       info("Restoring pub cache...");
-      const pubKey = pubCacheKey("pubspec.lock");
+      const pubKey = pubCacheKey(platform2, "pubspec.lock");
       if (pubKey) {
         pubHit = await restorePubCache(getPubCachePaths(pubCachePath), pubKey);
         if (!pubHit) {
