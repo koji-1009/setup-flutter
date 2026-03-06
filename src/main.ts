@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
+import { join } from "node:path";
 import {
+	addPath,
 	exportVariable,
 	getBooleanInput,
 	getInput,
@@ -176,6 +178,7 @@ export async function run(): Promise<void> {
 		setupPath(sdkDir);
 		const pubCachePath = getPubCachePath();
 		exportVariable("PUB_CACHE", pubCachePath);
+		addPath(join(pubCachePath, "bin"));
 
 		let pubHit = false;
 		if (cachePub) {

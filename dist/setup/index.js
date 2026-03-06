@@ -27041,6 +27041,7 @@ __export(main_exports, {
 });
 module.exports = __toCommonJS(main_exports);
 var import_node_crypto6 = require("node:crypto");
+var import_node_path6 = require("node:path");
 
 // node_modules/@actions/core/lib/command.js
 var os = __toESM(require("os"), 1);
@@ -60953,6 +60954,7 @@ async function run() {
     setupPath(sdkDir);
     const pubCachePath = getPubCachePath();
     exportVariable("PUB_CACHE", pubCachePath);
+    addPath((0, import_node_path6.join)(pubCachePath, "bin"));
     let pubHit = false;
     if (cachePub) {
       info("Restoring pub cache...");
