@@ -1,4 +1,5 @@
 import {
+	addPath,
 	exportVariable,
 	getBooleanInput,
 	getInput,
@@ -94,6 +95,7 @@ function setupDefaultMocks() {
 	vi.mocked(warning).mockImplementation(() => {});
 	vi.mocked(info).mockImplementation(() => {});
 	vi.mocked(exportVariable).mockImplementation(() => {});
+	vi.mocked(addPath).mockImplementation(() => {});
 
 	vi.mocked(getPlatform).mockReturnValue("linux");
 	vi.mocked(getArch).mockReturnValue("x64");
@@ -138,6 +140,7 @@ describe("main run()", () => {
 		expect(resolveFromManifest).toHaveBeenCalled();
 		expect(installFromArchive).toHaveBeenCalled();
 		expect(setupPath).toHaveBeenCalled();
+		expect(addPath).toHaveBeenCalledWith("/home/runner/.pub-cache/bin");
 		expect(setOutput).toHaveBeenCalledWith("flutter-version", "3.29.3");
 		expect(saveState).toHaveBeenCalledWith("installSuccess", "true");
 	});
