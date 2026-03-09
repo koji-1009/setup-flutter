@@ -19,6 +19,8 @@ updates:
           - "@actions/*"
       dev-dependencies:
         dependency-type: development
+        exclude-patterns:
+          - "@biomejs/biome"
 
   - package-ecosystem: github-actions
     directory: /
