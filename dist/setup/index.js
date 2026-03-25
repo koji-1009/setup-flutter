@@ -60549,6 +60549,9 @@ function _getTempDirectory() {
 }
 
 // src/installer.ts
+function toMB(bytes) {
+  return bytes / (1024 * 1024);
+}
 async function downloadWithHash(url2) {
   const http3 = new HttpClient("setup-flutter");
   const response = await http3.get(url2);
@@ -60572,21 +60575,21 @@ async function downloadWithHash(url2) {
           const percent = downloaded / contentLength2 * 100;
           if (nextThreshold <= percent) {
             const elapsed = (Date.now() - startTime) / 1e3;
-            const speed = downloaded / 1024 / 1024 / (elapsed || 1);
+            const speed = toMB(downloaded) / (elapsed || 1);
             while (nextThreshold <= percent) {
               info(
-                `Download progress: ${nextThreshold}% (${(downloaded / 1024 / 1024).toFixed(1)} MB / ${(contentLength2 / 1024 / 1024).toFixed(1)} MB) ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
+                `Download progress: ${nextThreshold}% (${toMB(downloaded).toFixed(1)} MB / ${toMB(contentLength2).toFixed(1)} MB) ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
               );
               nextThreshold += 10;
             }
           }
         } else {
-          const mb = downloaded / 1024 / 1024;
-          const prevMb = (downloaded - chunk.length) / 1024 / 1024;
+          const mb = toMB(downloaded);
+          const prevMb = toMB(downloaded - chunk.length);
           const step = 100;
           if (Math.floor(mb / step) > Math.floor(prevMb / step)) {
             const elapsed = (Date.now() - startTime) / 1e3;
-            const speed = downloaded / 1024 / 1024 / (elapsed || 1);
+            const speed = toMB(downloaded) / (elapsed || 1);
             info(
               `Download progress: ${mb.toFixed(1)} MB downloaded ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
             );
@@ -60865,8 +60868,8 @@ async function run() {
       channelInput = spec.channel;
     }
     let resolved;
-    let gitCommitHash;
-    let gitRef;
+    let gitCommitHash = "";
+    let gitRef = "";
     if (gitSource === "release") {
       const manifest = await fetchManifest(platform2);
       const result = resolveFromManifest(manifest, spec, channelInput, arch2);
@@ -60945,7 +60948,7 @@ async function run() {
     if (!sdkHit) {
       if (gitSource === "release") {
         await installFromArchive(resolved, sdkDir, platform2);
-      } else if (gitRef && gitCommitHash) {
+      } else {
         await installFromGit(gitSourceUrl, gitRef, sdkDir, gitCommitHash);
       }
       info(`Flutter SDK installed to ${sdkDir}`);

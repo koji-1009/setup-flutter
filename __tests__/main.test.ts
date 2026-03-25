@@ -407,6 +407,16 @@ describe("main run()", () => {
 		expect(setOutput).toHaveBeenCalledWith("flutter-version", "my-branch");
 	});
 
+	it("sets cache-pub-hit to true when pub cache hits", async () => {
+		setupDefaultMocks();
+		vi.mocked(restorePubCache).mockResolvedValue(true);
+
+		await run();
+
+		expect(restorePubCache).toHaveBeenCalled();
+		expect(setOutput).toHaveBeenCalledWith("cache-pub-hit", "true");
+	});
+
 	it("skips pub cache restore when pubCacheKey returns null", async () => {
 		setupDefaultMocks();
 		vi.mocked(pubCacheKey).mockReturnValue(null);

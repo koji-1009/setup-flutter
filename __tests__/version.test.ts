@@ -160,6 +160,10 @@ describe("parseVersionSpec", () => {
 		});
 	});
 
+	it("returns any for whitespace-only input", () => {
+		expect(parseVersionSpec("   ")).toEqual({ type: "any" });
+	});
+
 	it("trims whitespace", () => {
 		expect(parseVersionSpec("  3.41.2  ")).toEqual({
 			type: "exact",
