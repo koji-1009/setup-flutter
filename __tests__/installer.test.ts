@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { Readable } from "node:stream";
-import { addPath, exportVariable, info } from "@actions/core";
+import { addPath, exportVariable, info, warning } from "@actions/core";
 import { HttpClient } from "@actions/http-client";
 import { mkdirP, mv, rmRF } from "@actions/io";
 import { extractTar, extractZip } from "@actions/tool-cache";
@@ -11,6 +11,9 @@ vi.mock("@actions/http-client");
 vi.mock("@actions/tool-cache");
 vi.mock("@actions/core");
 vi.mock("@actions/io");
+vi.mock("node:timers/promises", () => ({
+	setTimeout: vi.fn().mockResolvedValue(undefined),
+}));
 
 // Create a known buffer and compute its SHA-256
 const testBuffer = Buffer.from("test-flutter-archive");
@@ -40,6 +43,31 @@ function mockHttpGetWith(
 					headers: contentLength ? { "content-length": contentLength } : {},
 				}),
 			});
+		} as unknown as typeof HttpClient,
+	);
+}
+
+function mockHttpGetSequence(
+	...responses: Array<{
+		statusCode?: number;
+		contentLength?: string;
+		chunks?: Buffer[];
+	}>
+) {
+	let idx = 0;
+	vi.mocked(HttpClient).mockImplementation(
+		class {
+			get = (() => {
+				const config = responses[Math.min(idx++, responses.length - 1)];
+				return vi.fn().mockResolvedValue({
+					message: Object.assign(Readable.from(config.chunks ?? [testBuffer]), {
+						statusCode: config.statusCode,
+						headers: config.contentLength
+							? { "content-length": config.contentLength }
+							: {},
+					}),
+				});
+			})();
 		} as unknown as typeof HttpClient,
 	);
 }
@@ -206,6 +234,152 @@ describe("installFromArchive", () => {
 			expect.stringContaining("flutter"),
 			"/opt/flutter",
 		);
+	});
+});
+
+describe("download retry", () => {
+	it("retries on HTTP 500 and succeeds on next attempt", async () => {
+		mockHttpGetSequence(
+			{ statusCode: 500 },
+			{ statusCode: 200, contentLength: String(testBuffer.length) },
+		);
+		await installFromArchive(resolved, "/opt/flutter", "linux");
+		expect(mv).toHaveBeenCalled();
+		const retryCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
+		expect(retryCalls).toHaveLength(1);
+	});
+
+	it("retries on HTTP 429 and succeeds on next attempt", async () => {
+		mockHttpGetSequence(
+			{ statusCode: 429 },
+			{ statusCode: 200, contentLength: String(testBuffer.length) },
+		);
+		await installFromArchive(resolved, "/opt/flutter", "linux");
+		expect(mv).toHaveBeenCalled();
+	});
+
+	it("does not retry on HTTP 404", async () => {
+		mockHttpGetWith(404);
+		await expect(
+			installFromArchive(resolved, "/opt/flutter", "linux"),
+		).rejects.toThrow("Download failed: HTTP 404");
+		const retryCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
+		expect(retryCalls).toHaveLength(0);
+	});
+
+	it("does not retry on HTTP 403", async () => {
+		mockHttpGetWith(403);
+		await expect(
+			installFromArchive(resolved, "/opt/flutter", "linux"),
+		).rejects.toThrow("Download failed: HTTP 403");
+		const retryCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
+		expect(retryCalls).toHaveLength(0);
+	});
+
+	it("throws after exhausting all retry attempts", async () => {
+		mockHttpGetWith(500);
+		await expect(
+			installFromArchive(resolved, "/opt/flutter", "linux"),
+		).rejects.toThrow("Download failed: HTTP 500");
+		const retryCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
+		expect(retryCalls).toHaveLength(2);
+	});
+
+	it("cleans up temp file when stream fails mid-download", async () => {
+		vi.mocked(HttpClient).mockImplementation(
+			class {
+				get = vi.fn().mockImplementation(async () => {
+					async function* failing() {
+						yield Buffer.from("partial-data");
+						throw new Error("Connection reset");
+					}
+					return {
+						message: Object.assign(Readable.from(failing()), {
+							statusCode: 200,
+							headers: { "content-length": "1000" },
+						}),
+					};
+				});
+			} as unknown as typeof HttpClient,
+		);
+		await expect(
+			installFromArchive(resolved, "/opt/flutter", "linux"),
+		).rejects.toThrow("Connection reset");
+		expect(rmRF).toHaveBeenCalled();
+	});
+
+	it("warns when temp file cleanup fails on stream error", async () => {
+		vi.mocked(rmRF).mockRejectedValue(new Error("EPERM"));
+		vi.mocked(HttpClient).mockImplementation(
+			class {
+				get = vi.fn().mockImplementation(async () => {
+					async function* failing() {
+						yield Buffer.from("partial-data");
+						throw new Error("Connection reset");
+					}
+					return {
+						message: Object.assign(Readable.from(failing()), {
+							statusCode: 200,
+							headers: { "content-length": "1000" },
+						}),
+					};
+				});
+			} as unknown as typeof HttpClient,
+		);
+		await expect(
+			installFromArchive(resolved, "/opt/flutter", "linux"),
+		).rejects.toThrow("Connection reset");
+		expect(warning).toHaveBeenCalledWith(
+			expect.stringContaining("Failed to clean up temp file"),
+		);
+	});
+
+	it("warns when temp file cleanup fails on SHA-256 mismatch", async () => {
+		vi.mocked(rmRF).mockRejectedValue(new Error("EPERM"));
+		const badResolved = { ...resolved, sha256: "wrong-hash" };
+		await expect(
+			installFromArchive(badResolved, "/opt/flutter", "linux"),
+		).rejects.toThrow("SHA-256 mismatch");
+		expect(warning).toHaveBeenCalledWith(
+			expect.stringContaining("Failed to clean up temp file"),
+		);
+	});
+
+	it("wraps non-Error thrown value into Error", async () => {
+		vi.mocked(HttpClient).mockImplementation(
+			class {
+				get = vi.fn().mockRejectedValue("string error");
+			} as unknown as typeof HttpClient,
+		);
+		await expect(
+			installFromArchive(resolved, "/opt/flutter", "linux"),
+		).rejects.toThrow("string error");
+	});
+
+	it("retries on SHA-256 mismatch and succeeds on next attempt", async () => {
+		const badBuffer = Buffer.from("corrupted-data");
+		mockHttpGetSequence(
+			{
+				statusCode: 200,
+				contentLength: String(badBuffer.length),
+				chunks: [badBuffer],
+			},
+			{ statusCode: 200, contentLength: String(testBuffer.length) },
+		);
+		await installFromArchive(resolved, "/opt/flutter", "linux");
+		expect(mv).toHaveBeenCalled();
+		const retryCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
+		expect(retryCalls).toHaveLength(1);
 	});
 });
 

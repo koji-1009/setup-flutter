@@ -60379,6 +60379,7 @@ var import_node_fs3 = require("node:fs");
 var import_node_os3 = require("node:os");
 var import_node_path3 = require("node:path");
 var import_promises = require("node:stream/promises");
+var import_promises2 = require("node:timers/promises");
 
 // node_modules/@actions/tool-cache/lib/tool-cache.js
 var crypto4 = __toESM(require("crypto"), 1);
@@ -60549,8 +60550,17 @@ function _getTempDirectory() {
 }
 
 // src/installer.ts
+var MAX_DOWNLOAD_ATTEMPTS = 3;
 function toMB(bytes) {
   return bytes / (1024 * 1024);
+}
+function isRetryableError(error2) {
+  const match2 = error2.message.match(/HTTP (\d+)/);
+  if (match2) {
+    const status = Number(match2[1]);
+    return status >= 500 || status === 408 || status === 429;
+  }
+  return true;
 }
 async function downloadWithHash(url2) {
   const http3 = new HttpClient("setup-flutter");
@@ -60565,55 +60575,87 @@ async function downloadWithHash(url2) {
   let downloaded = 0;
   let nextThreshold = 10;
   const startTime = Date.now();
-  await (0, import_promises.pipeline)(
-    response.message,
-    async function* (source) {
-      for await (const chunk of source) {
-        hash.update(chunk);
-        downloaded += chunk.length;
-        if (contentLength2 > 0) {
-          const percent = downloaded / contentLength2 * 100;
-          if (nextThreshold <= percent) {
-            const elapsed = (Date.now() - startTime) / 1e3;
-            const speed = toMB(downloaded) / (elapsed || 1);
-            while (nextThreshold <= percent) {
+  try {
+    await (0, import_promises.pipeline)(
+      response.message,
+      async function* (source) {
+        for await (const chunk of source) {
+          hash.update(chunk);
+          downloaded += chunk.length;
+          if (contentLength2 > 0) {
+            const percent = downloaded / contentLength2 * 100;
+            if (nextThreshold <= percent) {
+              const elapsed = (Date.now() - startTime) / 1e3;
+              const speed = toMB(downloaded) / (elapsed || 1);
+              while (nextThreshold <= percent) {
+                info(
+                  `Download progress: ${nextThreshold}% (${toMB(downloaded).toFixed(1)} MB / ${toMB(contentLength2).toFixed(1)} MB) ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
+                );
+                nextThreshold += 10;
+              }
+            }
+          } else {
+            const mb = toMB(downloaded);
+            const prevMb = toMB(downloaded - chunk.length);
+            const step = 100;
+            if (Math.floor(mb / step) > Math.floor(prevMb / step)) {
+              const elapsed = (Date.now() - startTime) / 1e3;
+              const speed = toMB(downloaded) / (elapsed || 1);
               info(
-                `Download progress: ${nextThreshold}% (${toMB(downloaded).toFixed(1)} MB / ${toMB(contentLength2).toFixed(1)} MB) ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
+                `Download progress: ${mb.toFixed(1)} MB downloaded ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
               );
-              nextThreshold += 10;
             }
           }
-        } else {
-          const mb = toMB(downloaded);
-          const prevMb = toMB(downloaded - chunk.length);
-          const step = 100;
-          if (Math.floor(mb / step) > Math.floor(prevMb / step)) {
-            const elapsed = (Date.now() - startTime) / 1e3;
-            const speed = toMB(downloaded) / (elapsed || 1);
-            info(
-              `Download progress: ${mb.toFixed(1)} MB downloaded ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`
-            );
-          }
+          yield chunk;
         }
-        yield chunk;
-      }
-    },
-    fileStream
-  );
+      },
+      fileStream
+    );
+  } catch (error2) {
+    await rmRF(tmpFile).catch(
+      (e) => warning(`Failed to clean up temp file: ${e}`)
+    );
+    throw error2;
+  }
   return { file: tmpFile, sha256: hash.digest("hex") };
+}
+async function downloadAndVerify(url2, expectedSha256) {
+  for (let attempt = 1; ; attempt++) {
+    let file;
+    try {
+      const result = await downloadWithHash(url2);
+      file = result.file;
+      info("Verifying archive checksum...");
+      if (result.sha256 !== expectedSha256) {
+        throw new Error(
+          `SHA-256 mismatch: expected ${expectedSha256}, got ${result.sha256}`
+        );
+      }
+      return file;
+    } catch (error2) {
+      if (file)
+        await rmRF(file).catch(
+          (e) => warning(`Failed to clean up temp file: ${e}`)
+        );
+      const err = error2 instanceof Error ? error2 : new Error(String(error2));
+      if (!isRetryableError(err) || attempt >= MAX_DOWNLOAD_ATTEMPTS) {
+        throw err;
+      }
+      const delaySec = Math.floor(Math.random() * 11) + 10;
+      info(
+        `Download attempt ${attempt}/${MAX_DOWNLOAD_ATTEMPTS} failed: ${err.message}. Retrying in ${delaySec}s...`
+      );
+      await (0, import_promises2.setTimeout)(delaySec * 1e3);
+    }
+  }
 }
 async function installFromArchive(resolved, sdkPath, platform2) {
   info(`Downloading Flutter ${resolved.version}...`);
-  const { file: tmpFile, sha256: actual } = await downloadWithHash(
-    resolved.downloadUrl
+  const tmpFile = await downloadAndVerify(
+    resolved.downloadUrl,
+    resolved.sha256
   );
   try {
-    info("Verifying archive checksum...");
-    if (actual !== resolved.sha256) {
-      throw new Error(
-        `SHA-256 mismatch: expected ${resolved.sha256}, got ${actual}`
-      );
-    }
     info("Extracting archive...");
     const extractParent = (0, import_node_path3.dirname)(sdkPath);
     await mkdirP(extractParent);
