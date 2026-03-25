@@ -8,6 +8,7 @@ Set up Flutter SDK for GitHub Actions.
 
 * **Pure TypeScript** — No external tools. Consistent behavior across Linux, macOS, and Windows.
 * **SHA-256 verification** — Every downloaded archive is verified against the official manifest to detect tampering.
+* **Reliable downloads** — Automatic retry (3 attempts with jitter) and socket/idle timeouts for both HTTP downloads and git operations.
 * **Automated maintenance** — Dependencies are kept up to date via Dependabot with auto-merge enabled for patch and minor updates.
 
 ## Usage
