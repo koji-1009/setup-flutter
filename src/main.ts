@@ -78,8 +78,8 @@ export async function run(): Promise<void> {
 		}
 
 		let resolved: ResolvedVersion | undefined;
-		let gitCommitHash: string | undefined;
-		let gitRef: string | undefined;
+		let gitCommitHash = "";
+		let gitRef = "";
 
 		if (gitSource === "release") {
 			const manifest = await fetchManifest(platform);
@@ -168,7 +168,7 @@ export async function run(): Promise<void> {
 		if (!sdkHit) {
 			if (gitSource === "release") {
 				await installFromArchive(resolved, sdkDir, platform);
-			} else if (gitRef && gitCommitHash) {
+			} else {
 				await installFromGit(gitSourceUrl, gitRef, sdkDir, gitCommitHash);
 			}
 			info(`Flutter SDK installed to ${sdkDir}`);

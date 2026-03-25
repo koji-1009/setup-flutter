@@ -9,6 +9,10 @@ import { mkdirP, mv, rmRF } from "@actions/io";
 import { extractTar, extractZip } from "@actions/tool-cache";
 import type { ResolvedVersion } from "./version";
 
+function toMB(bytes: number): number {
+	return bytes / (1024 * 1024);
+}
+
 async function downloadWithHash(
 	url: string,
 ): Promise<{ file: string; sha256: string }> {
@@ -38,21 +42,21 @@ async function downloadWithHash(
 					const percent = (downloaded / contentLength) * 100;
 					if (nextThreshold <= percent) {
 						const elapsed = (Date.now() - startTime) / 1000;
-						const speed = downloaded / 1024 / 1024 / (elapsed || 1);
+						const speed = toMB(downloaded) / (elapsed || 1);
 						while (nextThreshold <= percent) {
 							info(
-								`Download progress: ${nextThreshold}% (${(downloaded / 1024 / 1024).toFixed(1)} MB / ${(contentLength / 1024 / 1024).toFixed(1)} MB) ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`,
+								`Download progress: ${nextThreshold}% (${toMB(downloaded).toFixed(1)} MB / ${toMB(contentLength).toFixed(1)} MB) ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`,
 							);
 							nextThreshold += 10;
 						}
 					}
 				} else {
-					const mb = downloaded / 1024 / 1024;
-					const prevMb = (downloaded - chunk.length) / 1024 / 1024;
+					const mb = toMB(downloaded);
+					const prevMb = toMB(downloaded - chunk.length);
 					const step = 100;
 					if (Math.floor(mb / step) > Math.floor(prevMb / step)) {
 						const elapsed = (Date.now() - startTime) / 1000;
-						const speed = downloaded / 1024 / 1024 / (elapsed || 1);
+						const speed = toMB(downloaded) / (elapsed || 1);
 						info(
 							`Download progress: ${mb.toFixed(1)} MB downloaded ${elapsed.toFixed(1)}s ${speed.toFixed(1)} MB/s`,
 						);

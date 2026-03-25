@@ -41,6 +41,18 @@ describe("readPubspec", () => {
 		).toBe("3.29.0");
 	});
 
+	it("reads constraint from pubspec with single quotes", () => {
+		expect(readPubspec(join(fixturesDir, "pubspec-single-quoted.yaml"))).toBe(
+			">=3.29.0 <4.0.0",
+		);
+	});
+
+	it("reads constraint from pubspec with blank lines in environment", () => {
+		expect(readPubspec(join(fixturesDir, "pubspec-blank-lines.yaml"))).toBe(
+			">=3.29.0 <4.0.0",
+		);
+	});
+
 	it("returns empty string for empty quoted flutter value", () => {
 		expect(readPubspec(join(fixturesDir, "pubspec-empty-quoted.yaml"))).toBe(
 			"",
