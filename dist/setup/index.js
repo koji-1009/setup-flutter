@@ -60315,6 +60315,34 @@ var import_node_path2 = require("node:path");
 var FLUTTER_ORIGIN = "https://github.com/flutter/flutter";
 var HASH_PATTERN = /^[0-9a-f]{7,40}$/;
 var FULL_HASH_PATTERN = /^[0-9a-f]{40}$/;
+var GIT_TIMEOUT_MS = 10 * 60 * 1e3;
+var PRECACHE_TIMEOUT_MS = 10 * 60 * 1e3;
+var LS_REMOTE_TIMEOUT_MS = 6e4;
+var GIT_TIMEOUT_ENV = {
+  GIT_HTTP_LOW_SPEED_LIMIT: "1000",
+  GIT_HTTP_LOW_SPEED_TIME: "60"
+};
+function execWithTimeout(cmd, args, timeoutMs, options) {
+  return new Promise((resolve2, reject) => {
+    const timer = setTimeout(() => {
+      reject(
+        new Error(
+          `Command timed out after ${Math.round(timeoutMs / 1e3)}s: ${cmd} ${args.join(" ")}`
+        )
+      );
+    }, timeoutMs);
+    exec(cmd, args, options).then(
+      (code) => {
+        clearTimeout(timer);
+        resolve2(code);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
 function isOriginalRepo(url2) {
   const normalized = url2.toLowerCase().replace(/\.git$/, "");
   return normalized === FLUTTER_ORIGIN;
@@ -60337,7 +60365,8 @@ async function resolveGitRef(url2, ref, manifest) {
   }
   info("Resolving ref via git ls-remote...");
   let output = "";
-  await exec("git", ["ls-remote", url2], {
+  await execWithTimeout("git", ["ls-remote", url2], LS_REMOTE_TIMEOUT_MS, {
+    env: { ...process.env, ...GIT_TIMEOUT_ENV },
     listeners: {
       stdout: (data) => {
         output += data.toString();
@@ -60361,16 +60390,34 @@ async function resolveGitRef(url2, ref, manifest) {
   throw new Error(`Could not resolve ref '${ref}' in ${url2}`);
 }
 async function installFromGit(url2, ref, sdkPath, commitHash) {
+  const gitOpts = {
+    env: { ...process.env, ...GIT_TIMEOUT_ENV }
+  };
   info(`Cloning Flutter from ${url2} (ref: ${ref})...`);
   if (FULL_HASH_PATTERN.test(commitHash) && ref === commitHash) {
-    await exec("git", ["clone", url2, sdkPath]);
-    await exec("git", ["-C", sdkPath, "checkout", commitHash]);
+    await execWithTimeout(
+      "git",
+      ["clone", url2, sdkPath],
+      GIT_TIMEOUT_MS,
+      gitOpts
+    );
+    await execWithTimeout(
+      "git",
+      ["-C", sdkPath, "checkout", commitHash],
+      GIT_TIMEOUT_MS,
+      gitOpts
+    );
   } else {
-    await exec("git", ["clone", "--depth", "1", "--branch", ref, url2, sdkPath]);
+    await execWithTimeout(
+      "git",
+      ["clone", "--depth", "1", "--branch", ref, url2, sdkPath],
+      GIT_TIMEOUT_MS,
+      gitOpts
+    );
   }
   info("Running flutter precache...");
   const flutterBin = (0, import_node_path2.join)(sdkPath, "bin", "flutter");
-  await exec(flutterBin, ["precache"]);
+  await execWithTimeout(flutterBin, ["precache"], PRECACHE_TIMEOUT_MS);
 }
 
 // src/installer.ts
@@ -60551,6 +60598,7 @@ function _getTempDirectory() {
 
 // src/installer.ts
 var MAX_DOWNLOAD_ATTEMPTS = 3;
+var SOCKET_TIMEOUT_MS = 6e4;
 function toMB(bytes) {
   return bytes / (1024 * 1024);
 }
@@ -60563,7 +60611,9 @@ function isRetryableError(error2) {
   return true;
 }
 async function downloadWithHash(url2) {
-  const http3 = new HttpClient("setup-flutter");
+  const http3 = new HttpClient("setup-flutter", void 0, {
+    socketTimeout: SOCKET_TIMEOUT_MS
+  });
   const response = await http3.get(url2);
   if (response.message.statusCode === void 0 || response.message.statusCode < 200 || response.message.statusCode >= 300) {
     throw new Error(`Download failed: HTTP ${response.message.statusCode}`);

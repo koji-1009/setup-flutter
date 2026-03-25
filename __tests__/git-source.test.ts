@@ -181,6 +181,13 @@ describe("installFromGit", () => {
 		vi.mocked(exec).mockResolvedValue(0);
 	});
 
+	const gitEnvMatcher = expect.objectContaining({
+		env: expect.objectContaining({
+			GIT_HTTP_LOW_SPEED_LIMIT: "1000",
+			GIT_HTTP_LOW_SPEED_TIME: "60",
+		}),
+	});
+
 	it("clones with --depth 1 --branch for branch ref", async () => {
 		await installFromGit(
 			"https://github.com/flutter/flutter.git",
@@ -188,18 +195,19 @@ describe("installFromGit", () => {
 			"/opt/flutter",
 			"abc123def4567890abc123def4567890abc123de",
 		);
-		expect(exec).toHaveBeenCalledWith("git", [
-			"clone",
-			"--depth",
-			"1",
-			"--branch",
-			"stable",
-			"https://github.com/flutter/flutter.git",
-			"/opt/flutter",
-		]);
-		expect(exec).toHaveBeenCalledWith(expect.stringContaining("flutter"), [
-			"precache",
-		]);
+		expect(exec).toHaveBeenCalledWith(
+			"git",
+			[
+				"clone",
+				"--depth",
+				"1",
+				"--branch",
+				"stable",
+				"https://github.com/flutter/flutter.git",
+				"/opt/flutter",
+			],
+			gitEnvMatcher,
+		);
 	});
 
 	it("does full clone + checkout for commit hash ref", async () => {
@@ -210,17 +218,16 @@ describe("installFromGit", () => {
 			"/opt/flutter",
 			hash,
 		);
-		expect(exec).toHaveBeenCalledWith("git", [
-			"clone",
-			"https://github.com/flutter/flutter.git",
-			"/opt/flutter",
-		]);
-		expect(exec).toHaveBeenCalledWith("git", [
-			"-C",
-			"/opt/flutter",
-			"checkout",
-			hash,
-		]);
+		expect(exec).toHaveBeenCalledWith(
+			"git",
+			["clone", "https://github.com/flutter/flutter.git", "/opt/flutter"],
+			gitEnvMatcher,
+		);
+		expect(exec).toHaveBeenCalledWith(
+			"git",
+			["-C", "/opt/flutter", "checkout", hash],
+			gitEnvMatcher,
+		);
 	});
 
 	it("clones with --depth 1 --branch for short hash commitHash", async () => {
@@ -230,15 +237,49 @@ describe("installFromGit", () => {
 			"/opt/flutter",
 			"abc1234", // short hash, not 40 chars
 		);
-		expect(exec).toHaveBeenCalledWith("git", [
-			"clone",
-			"--depth",
-			"1",
-			"--branch",
-			"stable",
+		expect(exec).toHaveBeenCalledWith(
+			"git",
+			[
+				"clone",
+				"--depth",
+				"1",
+				"--branch",
+				"stable",
+				"https://github.com/flutter/flutter.git",
+				"/opt/flutter",
+			],
+			gitEnvMatcher,
+		);
+	});
+
+	it("throws when command times out", async () => {
+		vi.useFakeTimers();
+		vi.mocked(exec).mockReturnValue(new Promise(() => {}));
+
+		const promise = installFromGit(
 			"https://github.com/flutter/flutter.git",
+			"stable",
 			"/opt/flutter",
-		]);
+			"abc123def4567890abc123def4567890abc123de",
+		);
+
+		const assertion = expect(promise).rejects.toThrow("Command timed out");
+		await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+		await assertion;
+		vi.useRealTimers();
+	});
+
+	it("propagates exec errors", async () => {
+		vi.mocked(exec).mockRejectedValue(new Error("git clone failed"));
+
+		await expect(
+			installFromGit(
+				"https://github.com/flutter/flutter.git",
+				"stable",
+				"/opt/flutter",
+				"abc123def4567890abc123def4567890abc123de",
+			),
+		).rejects.toThrow("git clone failed");
 	});
 
 	it("calls flutter precache after clone", async () => {

@@ -8,6 +8,42 @@ const FLUTTER_ORIGIN = "https://github.com/flutter/flutter";
 const HASH_PATTERN = /^[0-9a-f]{7,40}$/;
 const FULL_HASH_PATTERN = /^[0-9a-f]{40}$/;
 
+const GIT_TIMEOUT_MS = 10 * 60 * 1000;
+const PRECACHE_TIMEOUT_MS = 10 * 60 * 1000;
+const LS_REMOTE_TIMEOUT_MS = 60_000;
+
+const GIT_TIMEOUT_ENV: Record<string, string> = {
+	GIT_HTTP_LOW_SPEED_LIMIT: "1000",
+	GIT_HTTP_LOW_SPEED_TIME: "60",
+};
+
+function execWithTimeout(
+	cmd: string,
+	args: string[],
+	timeoutMs: number,
+	options?: Parameters<typeof exec>[2],
+): Promise<number> {
+	return new Promise<number>((resolve, reject) => {
+		const timer = setTimeout(() => {
+			reject(
+				new Error(
+					`Command timed out after ${Math.round(timeoutMs / 1000)}s: ${cmd} ${args.join(" ")}`,
+				),
+			);
+		}, timeoutMs);
+		exec(cmd, args, options).then(
+			(code) => {
+				clearTimeout(timer);
+				resolve(code);
+			},
+			(err) => {
+				clearTimeout(timer);
+				reject(err);
+			},
+		);
+	});
+}
+
 export function isOriginalRepo(url: string): boolean {
 	const normalized = url.toLowerCase().replace(/\.git$/, "");
 	return normalized === FLUTTER_ORIGIN;
@@ -38,7 +74,8 @@ export async function resolveGitRef(
 
 	info("Resolving ref via git ls-remote...");
 	let output = "";
-	await exec("git", ["ls-remote", url], {
+	await execWithTimeout("git", ["ls-remote", url], LS_REMOTE_TIMEOUT_MS, {
+		env: { ...process.env, ...GIT_TIMEOUT_ENV } as Record<string, string>,
 		listeners: {
 			stdout: (data: Buffer) => {
 				output += data.toString();
@@ -72,17 +109,36 @@ export async function installFromGit(
 	sdkPath: string,
 	commitHash: string,
 ): Promise<void> {
+	const gitOpts = {
+		env: { ...process.env, ...GIT_TIMEOUT_ENV } as Record<string, string>,
+	};
+
 	info(`Cloning Flutter from ${url} (ref: ${ref})...`);
 	if (FULL_HASH_PATTERN.test(commitHash) && ref === commitHash) {
 		// Commit hash as ref requires full clone + checkout
-		await exec("git", ["clone", url, sdkPath]);
-		await exec("git", ["-C", sdkPath, "checkout", commitHash]);
+		await execWithTimeout(
+			"git",
+			["clone", url, sdkPath],
+			GIT_TIMEOUT_MS,
+			gitOpts,
+		);
+		await execWithTimeout(
+			"git",
+			["-C", sdkPath, "checkout", commitHash],
+			GIT_TIMEOUT_MS,
+			gitOpts,
+		);
 	} else {
 		// Shallow clone with branch
-		await exec("git", ["clone", "--depth", "1", "--branch", ref, url, sdkPath]);
+		await execWithTimeout(
+			"git",
+			["clone", "--depth", "1", "--branch", ref, url, sdkPath],
+			GIT_TIMEOUT_MS,
+			gitOpts,
+		);
 	}
 
 	info("Running flutter precache...");
 	const flutterBin = join(sdkPath, "bin", "flutter");
-	await exec(flutterBin, ["precache"]);
+	await execWithTimeout(flutterBin, ["precache"], PRECACHE_TIMEOUT_MS);
 }
