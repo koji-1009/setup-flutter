@@ -11,6 +11,7 @@ import { extractTar, extractZip } from "@actions/tool-cache";
 import type { ResolvedVersion } from "./version";
 
 const MAX_DOWNLOAD_ATTEMPTS = 3;
+const SOCKET_TIMEOUT_MS = 60_000;
 
 function toMB(bytes: number): number {
 	return bytes / (1024 * 1024);
@@ -28,7 +29,9 @@ function isRetryableError(error: Error): boolean {
 async function downloadWithHash(
 	url: string,
 ): Promise<{ file: string; sha256: string }> {
-	const http = new HttpClient("setup-flutter");
+	const http = new HttpClient("setup-flutter", undefined, {
+		socketTimeout: SOCKET_TIMEOUT_MS,
+	});
 	const response = await http.get(url);
 	if (
 		response.message.statusCode === undefined ||
