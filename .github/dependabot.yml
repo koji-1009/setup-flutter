@@ -4,7 +4,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
-      day: monday
+      day: saturday
+      time: "08:00"
+      timezone: Asia/Tokyo
     open-pull-requests-limit: 10
     cooldown:
       default-days: 3
@@ -26,7 +28,13 @@ updates:
     directory: /
     schedule:
       interval: weekly
-      day: monday
+      day: saturday
+      time: "08:00"
+      timezone: Asia/Tokyo
     open-pull-requests-limit: 5
     cooldown:
       default-days: 3
+    groups:
+      github-actions-official:
+        patterns:
+          - "actions/*"
