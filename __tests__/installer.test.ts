@@ -123,7 +123,7 @@ describe("installFromArchive", () => {
 		const badResolved = { ...resolved, sha256: "wrong-hash" };
 		await expect(
 			installFromArchive(badResolved, "/opt/flutter", "linux"),
-		).rejects.toThrow("SHA-256 mismatch");
+		).rejects.toThrow(`SHA-256 mismatch for ${resolved.downloadUrl}`);
 		expect(rmRF).toHaveBeenCalled();
 	});
 
@@ -131,14 +131,16 @@ describe("installFromArchive", () => {
 		mockHttpGetWith(404);
 		await expect(
 			installFromArchive(resolved, "/opt/flutter", "linux"),
-		).rejects.toThrow("Download failed: HTTP 404");
+		).rejects.toThrow(`Download failed: HTTP 404 for ${resolved.downloadUrl}`);
 	});
 
 	it("throws when HTTP status code is undefined", async () => {
 		mockHttpGetWith();
 		await expect(
 			installFromArchive(resolved, "/opt/flutter", "linux"),
-		).rejects.toThrow("Download failed: HTTP undefined");
+		).rejects.toThrow(
+			`Download failed: HTTP undefined for ${resolved.downloadUrl}`,
+		);
 	});
 
 	it("logs percentage progress when content-length is available", async () => {
