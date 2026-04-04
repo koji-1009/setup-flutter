@@ -38,7 +38,9 @@ async function downloadWithHash(
 		response.message.statusCode < 200 ||
 		response.message.statusCode >= 300
 	) {
-		throw new Error(`Download failed: HTTP ${response.message.statusCode}`);
+		throw new Error(
+			`Download failed: HTTP ${response.message.statusCode} for ${url}`,
+		);
 	}
 	const tmpFile = join(tmpdir(), `flutter-${randomUUID()}.archive`);
 	const hash = createHash("sha256");
@@ -104,7 +106,7 @@ async function downloadAndVerify(
 			info("Verifying archive checksum...");
 			if (result.sha256 !== expectedSha256) {
 				throw new Error(
-					`SHA-256 mismatch: expected ${expectedSha256}, got ${result.sha256}`,
+					`SHA-256 mismatch for ${url}: expected ${expectedSha256}, got ${result.sha256}`,
 				);
 			}
 			return file;
