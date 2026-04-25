@@ -1,0 +1,34 @@
+name: Cleanup PR Caches
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete caches for closed PR branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_REF: refs/heads/${{ github.event.pull_request.head.ref }}
+        run: |
+          gh extension install actions/gh-actions-cache
+          echo "Listing caches for $PR_REF"
+          keys=$(gh actions-cache list -R "$REPO" -B "$PR_REF" --limit 100 | cut -f1)
+          if [ -z "$keys" ]; then
+            echo "No caches found for $PR_REF"
+            exit 0
+          fi
+          set +e
+          for key in $keys; do
+            echo "Deleting $key"
+            gh actions-cache delete "$key" -R "$REPO" -B "$PR_REF" --confirm
+          done
+          echo "Done"
