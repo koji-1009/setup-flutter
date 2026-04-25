@@ -19,9 +19,10 @@ jobs:
           REPO: ${{ github.repository }}
           PR_REF: refs/pull/${{ github.event.pull_request.number }}/merge
         run: |
+          set -e
           echo "Listing caches for $PR_REF"
           ids=$(gh api --paginate \
-            "repos/$REPO/actions/caches?ref=$PR_REF&per_page=100" \
+            "/repos/$REPO/actions/caches?ref=$PR_REF&per_page=100" \
             --jq '.actions_caches[].id')
           if [ -z "$ids" ]; then
             echo "No caches found for $PR_REF"
@@ -30,11 +31,12 @@ jobs:
           failed=0
           for id in $ids; do
             echo "Deleting cache id=$id"
-            if ! gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent; then
+            if ! gh api -X DELETE "/repos/$REPO/actions/caches/$id" --silent; then
               failed=$((failed + 1))
             fi
           done
           if [ "$failed" -gt 0 ]; then
-            echo "::warning::$failed cache deletion(s) failed"
+            echo "::error::$failed cache deletion(s) failed"
+            exit 1
           fi
           echo "Done"
