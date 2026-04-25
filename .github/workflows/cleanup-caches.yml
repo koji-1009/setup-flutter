@@ -19,17 +19,18 @@ jobs:
           REPO: ${{ github.repository }}
           PR_REF: refs/pull/${{ github.event.pull_request.number }}/merge
         run: |
-          gh extension install actions/gh-actions-cache
           echo "Listing caches for $PR_REF"
-          keys=$(gh actions-cache list -R "$REPO" -B "$PR_REF" --limit 100 | cut -f1)
-          if [ -z "$keys" ]; then
+          ids=$(gh api --paginate \
+            "repos/$REPO/actions/caches?ref=$PR_REF&per_page=100" \
+            --jq '.actions_caches[].id')
+          if [ -z "$ids" ]; then
             echo "No caches found for $PR_REF"
             exit 0
           fi
           failed=0
-          for key in $keys; do
-            echo "Deleting $key"
-            if ! gh actions-cache delete "$key" -R "$REPO" -B "$PR_REF" --confirm; then
+          for id in $ids; do
+            echo "Deleting cache id=$id"
+            if ! gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent; then
               failed=$((failed + 1))
             fi
           done
