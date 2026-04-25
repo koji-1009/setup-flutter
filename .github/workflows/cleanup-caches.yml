@@ -13,11 +13,11 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - name: Delete caches for closed PR branch
+      - name: Delete caches for closed PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          PR_REF: refs/heads/${{ github.event.pull_request.head.ref }}
+          PR_REF: refs/pull/${{ github.event.pull_request.number }}/merge
         run: |
           gh extension install actions/gh-actions-cache
           echo "Listing caches for $PR_REF"
@@ -26,9 +26,14 @@ jobs:
             echo "No caches found for $PR_REF"
             exit 0
           fi
-          set +e
+          failed=0
           for key in $keys; do
             echo "Deleting $key"
-            gh actions-cache delete "$key" -R "$REPO" -B "$PR_REF" --confirm
+            if ! gh actions-cache delete "$key" -R "$REPO" -B "$PR_REF" --confirm; then
+              failed=$((failed + 1))
+            fi
           done
+          if [ "$failed" -gt 0 ]; then
+            echo "::warning::$failed cache deletion(s) failed"
+          fi
           echo "Done"
