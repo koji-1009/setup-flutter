@@ -22776,7 +22776,7 @@ var require_package = __commonJS({
   "node_modules/@actions/cache/package.json"(exports2, module2) {
     module2.exports = {
       name: "@actions/cache",
-      version: "6.0.0",
+      version: "6.0.1",
       description: "Actions cache lib",
       keywords: [
         "github",
@@ -22819,21 +22819,21 @@ var require_package = __commonJS({
         url: "https://github.com/actions/toolkit/issues"
       },
       dependencies: {
-        "@actions/core": "^3.0.0",
+        "@actions/core": "^3.0.1",
         "@actions/exec": "^3.0.0",
         "@actions/glob": "^0.6.1",
-        "@actions/http-client": "^4.0.0",
-        "@actions/io": "^3.0.0",
-        "@azure/core-rest-pipeline": "^1.22.0",
-        "@azure/storage-blob": "^12.30.0",
+        "@actions/http-client": "^4.0.1",
+        "@actions/io": "^3.0.2",
+        "@azure/core-rest-pipeline": "^1.23.0",
+        "@azure/storage-blob": "^12.31.0",
         "@protobuf-ts/runtime-rpc": "^2.11.1",
-        semver: "^7.7.3"
+        semver: "^7.7.4"
       },
       devDependencies: {
-        "@protobuf-ts/plugin": "^2.9.4",
-        "@types/node": "^25.1.0",
+        "@protobuf-ts/plugin": "^2.11.1",
+        "@types/node": "^25.6.0",
         "@types/semver": "^7.7.1",
-        typescript: "^5.2.2"
+        typescript: "^5.9.3"
       },
       overrides: {
         "uri-js": "npm:uri-js-replace@^1.0.1",
@@ -30544,11 +30544,11 @@ var Sanitizer = class {
           message: value.message
         };
       }
-      if (key === "headers") {
+      if (key === "headers" && isObject(value)) {
         return this.sanitizeHeaders(value);
-      } else if (key === "url") {
+      } else if (key === "url" && typeof value === "string") {
         return this.sanitizeUrl(value);
-      } else if (key === "query") {
+      } else if (key === "query" && isObject(value)) {
         return this.sanitizeQuery(value);
       } else if (key === "body") {
         return void 0;
@@ -31019,20 +31019,27 @@ function logPolicy(options = {}) {
 var redirectPolicyName = "redirectPolicy";
 var allowedRedirect = ["GET", "HEAD"];
 function redirectPolicy(options = {}) {
-  const { maxRetries = 20 } = options;
+  const { maxRetries = 20, allowCrossOriginRedirects = false } = options;
   return {
     name: redirectPolicyName,
     async sendRequest(request, next) {
       const response = await next(request);
-      return handleRedirect(next, response, maxRetries);
+      return handleRedirect(next, response, maxRetries, allowCrossOriginRedirects);
     }
   };
 }
-async function handleRedirect(next, response, maxRetries, currentRetries = 0) {
+async function handleRedirect(next, response, maxRetries, allowCrossOriginRedirects, currentRetries = 0) {
   const { request, status, headers } = response;
   const locationHeader = headers.get("location");
   if (locationHeader && (status === 300 || status === 301 && allowedRedirect.includes(request.method) || status === 302 && allowedRedirect.includes(request.method) || status === 303 && request.method === "POST" || status === 307) && currentRetries < maxRetries) {
     const url2 = new URL(locationHeader, request.url);
+    if (!allowCrossOriginRedirects) {
+      const originalUrl = new URL(request.url);
+      if (url2.origin !== originalUrl.origin) {
+        logger.verbose(`Skipping cross-origin redirect from ${originalUrl.origin} to ${url2.origin}.`);
+        return response;
+      }
+    }
     request.url = url2.toString();
     if (status === 303) {
       request.method = "GET";
@@ -31041,7 +31048,7 @@ async function handleRedirect(next, response, maxRetries, currentRetries = 0) {
     }
     request.headers.delete("Authorization");
     const res = await next(request);
-    return handleRedirect(next, res, maxRetries, currentRetries + 1);
+    return handleRedirect(next, res, maxRetries, allowCrossOriginRedirects, currentRetries + 1);
   }
   return response;
 }
@@ -31235,11 +31242,11 @@ function retryPolicy(strategies, options = { maxRetries: DEFAULT_RETRY_POLICY_CO
           logger7.info(`Retry ${retryCount}: Received a response from request`, request.requestId);
         } catch (e) {
           logger7.error(`Retry ${retryCount}: Received an error from request`, request.requestId);
-          responseError = e;
-          if (!e || responseError.name !== "RestError") {
+          if (!isRestError(e)) {
             throw e;
           }
-          response = responseError.response;
+          responseError = e;
+          response = e.response;
         }
         if (request.abortSignal?.aborted) {
           logger7.error(`Retry ${retryCount}: Request aborted.`);
@@ -31502,15 +31509,14 @@ function setProxyAgentOnRequest(request, cachedAgents, proxyUrl) {
   if (request.tlsSettings) {
     logger.warning("TLS settings are not supported in combination with custom Proxy, certificates provided to the client will be ignored.");
   }
-  const headers = request.headers.toJSON();
   if (isInsecure) {
     if (!cachedAgents.httpProxyAgent) {
-      cachedAgents.httpProxyAgent = new import_http_proxy_agent.HttpProxyAgent(proxyUrl, { headers });
+      cachedAgents.httpProxyAgent = new import_http_proxy_agent.HttpProxyAgent(proxyUrl);
     }
     request.agent = cachedAgents.httpProxyAgent;
   } else {
     if (!cachedAgents.httpsProxyAgent) {
-      cachedAgents.httpsProxyAgent = new import_https_proxy_agent.HttpsProxyAgent(proxyUrl, { headers });
+      cachedAgents.httpsProxyAgent = new import_https_proxy_agent.HttpsProxyAgent(proxyUrl);
     }
     request.agent = cachedAgents.httpsProxyAgent;
   }
@@ -31564,7 +31570,7 @@ function tlsPolicy(tlsSettings) {
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/typeGuards.js
 function isBlob(x) {
-  return typeof x.stream === "function";
+  return typeof Blob !== "undefined" && x instanceof Blob;
 }
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/concat.js
@@ -31771,7 +31777,7 @@ async function setPlatformSpecificData2(map) {
 }
 
 // node_modules/@azure/core-rest-pipeline/dist/esm/constants.js
-var SDK_VERSION2 = "1.22.2";
+var SDK_VERSION2 = "1.22.3";
 
 // node_modules/@azure/core-rest-pipeline/dist/esm/util/userAgent.js
 function getUserAgentString(telemetryInfo) {
@@ -58999,7 +59005,7 @@ NetworkError.isNetworkErrorCode = (code) => {
 };
 var UsageError = class extends Error {
   constructor() {
-    const message = `Cache storage quota has been hit. Unable to upload any new cache entries. Usage is recalculated every 6-12 hours.
+    const message = `Cache storage quota has been hit. Unable to upload any new cache entries.
 More info on storage limits: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#calculating-minute-and-storage-spending`;
     super(message);
     this.name = "UsageError";
