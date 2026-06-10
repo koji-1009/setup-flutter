@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Ensure tag does not exist
         run: |
@@ -39,7 +40,8 @@ jobs:
         with:
           node-version: 24.x
           cache: npm
-      - run: npm ci
+      # Dependency install scripts must not run in a job with a contents:write token
+      - run: npm ci --ignore-scripts
       - run: npm test
       - run: npm run build
       - run: npm run package
@@ -64,9 +66,11 @@ jobs:
           fi
 
       - name: Update major version tag
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -fa "$MAJOR" -m "Update $MAJOR tag to $VERSION"
-          git push origin "$MAJOR" --force
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/$MAJOR"
