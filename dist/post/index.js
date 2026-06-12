@@ -19592,6 +19592,18 @@ var require_semver = __commonJS({
     var { safeRe: re, t } = require_re();
     var parseOptions = require_parse_options();
     var { compareIdentifiers } = require_identifiers();
+    var isPrereleaseIdentifier = (prerelease, identifier) => {
+      const identifiers = identifier.split(".");
+      if (identifiers.length > prerelease.length) {
+        return false;
+      }
+      for (let i = 0; i < identifiers.length; i++) {
+        if (compareIdentifiers(prerelease[i], identifiers[i]) !== 0) {
+          return false;
+        }
+      }
+      return true;
+    };
     var SemVer = class _SemVer {
       constructor(version3, options) {
         options = parseOptions(options);
@@ -19838,8 +19850,9 @@ var require_semver = __commonJS({
               if (identifierBase === false) {
                 prerelease = [identifier];
               }
-              if (compareIdentifiers(this.prerelease[0], identifier) === 0) {
-                if (isNaN(this.prerelease[1])) {
+              if (isPrereleaseIdentifier(this.prerelease, identifier)) {
+                const prereleaseBase = this.prerelease[identifier.split(".").length];
+                if (isNaN(prereleaseBase)) {
                   this.prerelease = prerelease;
                 }
               } else {
@@ -20568,9 +20581,9 @@ var require_range = __commonJS({
           debug2("no pr");
           if (M === "0") {
             if (m === "0") {
-              ret = `>=${M}.${m}.${p}${z} <${M}.${m}.${+p + 1}-0`;
+              ret = `>=${M}.${m}.${p} <${M}.${m}.${+p + 1}-0`;
             } else {
-              ret = `>=${M}.${m}.${p}${z} <${M}.${+m + 1}.0-0`;
+              ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
             }
           } else {
             ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
