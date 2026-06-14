@@ -1,7 +1,13 @@
 import { join } from "node:path";
 import { info, warning } from "@actions/core";
 import { exec } from "@actions/exec";
-import type { FlutterManifest } from "./version";
+import { prerelease, rcompare, valid } from "semver";
+import {
+	type FlutterManifest,
+	findManifestVersion,
+	specMatchesVersion,
+	type VersionSpec,
+} from "./version";
 
 const FLUTTER_ORIGIN = "https://github.com/flutter/flutter";
 
@@ -16,6 +22,9 @@ const GIT_TIMEOUT_ENV: Record<string, string> = {
 	GIT_HTTP_LOW_SPEED_LIMIT: "1000",
 	GIT_HTTP_LOW_SPEED_TIME: "60",
 };
+
+/** A resolved git target: the commit to cache, its version, and the ref to clone. */
+type GitResolution = { commitHash: string; version: string; ref: string };
 
 function execWithTimeout(
 	cmd: string,
@@ -42,6 +51,27 @@ function execWithTimeout(
 			},
 		);
 	});
+}
+
+async function lsRemote(
+	url: string,
+	extraArgs: string[] = [],
+): Promise<string[]> {
+	let output = "";
+	await execWithTimeout(
+		"git",
+		["ls-remote", ...extraArgs, url],
+		LS_REMOTE_TIMEOUT_MS,
+		{
+			env: { ...process.env, ...GIT_TIMEOUT_ENV } as Record<string, string>,
+			listeners: {
+				stdout: (data: Buffer) => {
+					output += data.toString();
+				},
+			},
+		},
+	);
+	return output.trim().split("\n");
 }
 
 export function isOriginalRepo(url: string): boolean {
@@ -73,17 +103,7 @@ export async function resolveGitRef(
 	}
 
 	info("Resolving ref via git ls-remote...");
-	let output = "";
-	await execWithTimeout("git", ["ls-remote", url], LS_REMOTE_TIMEOUT_MS, {
-		env: { ...process.env, ...GIT_TIMEOUT_ENV } as Record<string, string>,
-		listeners: {
-			stdout: (data: Buffer) => {
-				output += data.toString();
-			},
-		},
-	});
-
-	for (const line of output.trim().split("\n")) {
+	for (const line of await lsRemote(url)) {
 		const [hash, refPath] = line.split("\t");
 		if (refPath === `refs/heads/${ref}` || refPath === `refs/tags/${ref}`) {
 			return { commitHash: hash };
@@ -101,6 +121,119 @@ export async function resolveGitRef(
 	}
 
 	throw new Error(`Could not resolve ref '${ref}' in ${url}`);
+}
+
+async function lsRemoteTags(url: string): Promise<Map<string, string>> {
+	// `git ls-remote --tags` emits both `refs/tags/<t>` and, for annotated tags,
+	// a peeled `refs/tags/<t>^{}` line (always immediately after) whose hash is
+	// the commit the tag points at. Last-write-wins therefore keeps the peeled
+	// commit hash, which is what we want to check out/cache.
+	const byTag = new Map<string, string>();
+	for (const line of await lsRemote(url, ["--tags"])) {
+		if (!line) continue;
+		const [hash, refPath] = line.split("\t");
+		if (!refPath?.startsWith("refs/tags/")) continue;
+		const tag = refPath.slice("refs/tags/".length).replace(/\^\{\}$/, "");
+		byTag.set(tag, hash);
+	}
+	return byTag;
+}
+
+function selectBestVersionTag(
+	tags: Map<string, string>,
+	spec: VersionSpec,
+	channel: string,
+): GitResolution | null {
+	// A fork carries no per-tag channel metadata, so mirror the manifest path's
+	// channel scoping by stability: the stable channel excludes prereleases,
+	// while beta/master allow them. Without this a `stable` + `3.x` request would
+	// pick the highest matching tag overall — e.g. a `3.x.y-0.1.pre` beta.
+	let best: GitResolution | null = null;
+	for (const [tag, hash] of tags) {
+		const version = valid(tag);
+		if (!version) continue;
+		if (channel === "stable" && prerelease(version) !== null) continue;
+		if (!specMatchesVersion(spec, version)) continue;
+		// rcompare(a, b) < 0 means version `a` is higher than `b`.
+		if (!best || rcompare(version, best.version) < 0) {
+			best = { commitHash: hash, version, ref: tag };
+		}
+	}
+	return best;
+}
+
+/**
+ * Resolves a range/constraint version spec to a concrete version in git mode.
+ *
+ * For the official repo the release manifest is preferred (authoritative and
+ * arch-agnostic via `findManifestVersion`), but it only covers channels that
+ * publish releases — the `master` channel has no manifest entries, and very old
+ * versions fall outside its window. When the manifest yields no match (and
+ * always for custom repos) the tags are enumerated with `git ls-remote --tags`
+ * and the highest version satisfying the spec is chosen. Throws when nothing
+ * matches anywhere, so a requested-but-unavailable version fails loudly rather
+ * than silently installing the channel HEAD.
+ */
+export async function resolveGitVersion(
+	url: string,
+	spec: VersionSpec,
+	channel: string,
+	manifest?: FlutterManifest,
+): Promise<GitResolution> {
+	if (isOriginalRepo(url) && manifest) {
+		const match = findManifestVersion(manifest, spec, channel);
+		if (match) {
+			return {
+				commitHash: match.hash,
+				version: match.version,
+				ref: match.version,
+			};
+		}
+	}
+
+	info("Resolving version from git tags via ls-remote...");
+	const best = selectBestVersionTag(await lsRemoteTags(url), spec, channel);
+	if (!best) {
+		throw new Error(
+			`No version tag matching ${JSON.stringify(spec)} found in ${url}`,
+		);
+	}
+	return best;
+}
+
+/**
+ * Single entry point for git-mode resolution. Routes range/constraint specs to
+ * version resolution (concrete tagged version) and channel/exact/ref/any to ref
+ * resolution, returning a uniform `{commitHash, version, ref}`. Keeps the
+ * spec→resolver policy in one place rather than in the caller.
+ */
+export async function resolveGit(
+	url: string,
+	spec: VersionSpec,
+	channel: string,
+	manifest?: FlutterManifest,
+): Promise<GitResolution> {
+	if (spec.type === "range" || spec.type === "constraint") {
+		return resolveGitVersion(url, spec, channel, manifest);
+	}
+
+	let ref: string;
+	switch (spec.type) {
+		case "channel":
+			ref = spec.channel;
+			break;
+		case "exact":
+			ref = spec.version;
+			break;
+		case "ref":
+			ref = spec.ref;
+			break;
+		case "any":
+			ref = channel;
+			break;
+	}
+	const result = await resolveGitRef(url, ref, manifest);
+	return { commitHash: result.commitHash, version: result.version || ref, ref };
 }
 
 export async function installFromGit(

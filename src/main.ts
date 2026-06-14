@@ -19,7 +19,7 @@ import {
 	sdkCacheKey,
 	sdkCachePath,
 } from "./cache";
-import { installFromGit, isOriginalRepo, resolveGitRef } from "./git-source";
+import { installFromGit, isOriginalRepo, resolveGit } from "./git-source";
 import { installFromArchive, setupPath } from "./installer";
 import { getArch, getPlatform, getPubCachePath } from "./utils";
 import {
@@ -94,29 +94,22 @@ export async function run(): Promise<void> {
 				`Resolved Flutter ${resolved.version} (Dart ${resolved.dartVersion}) on ${resolved.channel}/${resolved.arch}`,
 			);
 		} else {
-			switch (spec.type) {
-				case "channel":
-					gitRef = spec.channel;
-					break;
-				case "exact":
-					gitRef = spec.version;
-					break;
-				case "ref":
-					gitRef = spec.ref;
-					break;
-				case "constraint":
-				case "range":
-				case "any":
-					gitRef = channelInput;
-					break;
-			}
-			const useManifest = isOriginalRepo(gitSourceUrl);
-			const manifest = useManifest ? await fetchManifest(platform) : undefined;
-			const gitResult = await resolveGitRef(gitSourceUrl, gitRef, manifest);
+			const manifest = isOriginalRepo(gitSourceUrl)
+				? await fetchManifest(platform)
+				: undefined;
+			const gitResult = await resolveGit(
+				gitSourceUrl,
+				spec,
+				channelInput,
+				manifest,
+			);
+			gitRef = gitResult.ref;
 			gitCommitHash = gitResult.commitHash;
-			info(`Resolved git ref '${gitRef}' -> ${gitCommitHash}`);
+			info(
+				`Resolved git ${JSON.stringify(spec)} -> Flutter ${gitResult.version} (${gitCommitHash})`,
+			);
 			resolved = {
-				version: gitResult.version || gitRef,
+				version: gitResult.version,
 				channel: channelInput,
 				dartVersion: "unknown",
 				downloadUrl: "",

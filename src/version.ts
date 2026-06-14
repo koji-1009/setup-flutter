@@ -92,60 +92,101 @@ export async function fetchManifest(
 	return manifest;
 }
 
+/**
+ * Returns whether a concrete version string satisfies a version spec.
+ *
+ * This is the arch-agnostic matching core shared by release-mode resolution
+ * (`resolveFromManifest`) and git-mode version resolution (`findManifestVersion`
+ * and tag-based resolution in git-source). `channel`/`any` always match because
+ * channel filtering is the caller's responsibility.
+ */
+export function specMatchesVersion(
+	spec: VersionSpec,
+	version: string,
+): boolean {
+	switch (spec.type) {
+		case "exact":
+			return version === spec.version;
+		case "range": {
+			const maj = major(version);
+			const min = minor(version);
+			return (
+				maj === spec.major && (spec.minor === undefined || min === spec.minor)
+			);
+		}
+		case "any":
+		case "channel":
+			return true;
+		case "constraint":
+			return satisfies(version, spec.range, { includePrerelease: true });
+		case "ref":
+			throw new Error("ref spec cannot be used with release mode");
+	}
+}
+
+/**
+ * Finds the newest release on `channel` matching `spec`. Releases are ordered
+ * newest-first in the manifest, so the first match is the latest. When `arch`
+ * is given the release must provide an archive for it; when omitted (git mode)
+ * architecture is ignored because the git tag is built for every arch.
+ */
+function findMatchingRelease(
+	manifest: FlutterManifest,
+	spec: VersionSpec,
+	channel: string,
+	arch?: string,
+): FlutterRelease | null {
+	for (const release of manifest.releases) {
+		if (release.channel !== channel) continue;
+
+		if (arch === "arm64") {
+			if (release.dart_sdk_arch !== "arm64") continue;
+		} else if (arch === "x64") {
+			if (release.dart_sdk_arch && release.dart_sdk_arch !== "x64") continue;
+		}
+
+		if (specMatchesVersion(spec, release.version)) {
+			return release;
+		}
+	}
+
+	return null;
+}
+
 export function resolveFromManifest(
 	manifest: FlutterManifest,
 	spec: VersionSpec,
 	channel: string,
 	arch: string,
 ): ResolvedVersion | null {
-	// Releases are ordered newest-first in the manifest; first match is latest.
-	for (const release of manifest.releases) {
-		if (release.channel !== channel) continue;
+	const release = findMatchingRelease(manifest, spec, channel, arch);
+	if (!release) return null;
+	return {
+		version: release.version,
+		channel: release.channel,
+		dartVersion: release.dart_sdk_version,
+		downloadUrl: `${manifest.base_url}/${release.archive}`,
+		hash: release.hash,
+		sha256: release.sha256,
+		arch,
+	};
+}
 
-		if (arch === "arm64") {
-			if (release.dart_sdk_arch !== "arm64") continue;
-		} else {
-			if (release.dart_sdk_arch && release.dart_sdk_arch !== "x64") continue;
-		}
-
-		let matched = false;
-		switch (spec.type) {
-			case "exact":
-				matched = release.version === spec.version;
-				break;
-			case "range": {
-				const maj = major(release.version);
-				const min = minor(release.version);
-				matched =
-					maj === spec.major &&
-					(spec.minor === undefined || min === spec.minor);
-				break;
-			}
-			case "any":
-			case "channel":
-				matched = true;
-				break;
-			case "constraint":
-				matched = satisfies(release.version, spec.range, {
-					includePrerelease: true,
-				});
-				break;
-			case "ref":
-				throw new Error("ref spec cannot be used with release mode");
-		}
-
-		if (matched) {
-			return {
-				version: release.version,
-				channel: release.channel,
-				dartVersion: release.dart_sdk_version,
-				downloadUrl: `${manifest.base_url}/${release.archive}`,
-				hash: release.hash,
-				sha256: release.sha256,
-				arch,
-			};
-		}
-	}
-
-	return null;
+/**
+ * Resolves a version spec to a concrete release using the manifest, ignoring
+ * architecture.
+ *
+ * Used by git mode: the release manifest is published per-OS but only lists x64
+ * archives for Linux/Windows, yet the git tags exist for every architecture.
+ * Resolving the version independently of arch lets git mode honor a requested
+ * range/constraint on ARM64 hosts (where `resolveFromManifest` would find no
+ * matching archive). Returns the newest matching release, or null if none.
+ */
+export function findManifestVersion(
+	manifest: FlutterManifest,
+	spec: VersionSpec,
+	channel: string,
+): { version: string; hash: string } | null {
+	const release = findMatchingRelease(manifest, spec, channel);
+	return release ? { version: release.version, hash: release.hash } : null;
 }

@@ -12,8 +12,10 @@ import {
 import {
 	type FlutterManifest,
 	fetchManifest,
+	findManifestVersion,
 	parseVersionSpec,
 	resolveFromManifest,
+	specMatchesVersion,
 } from "../src/version";
 
 vi.mock("@actions/http-client");
@@ -169,6 +171,115 @@ describe("parseVersionSpec", () => {
 			type: "exact",
 			version: "3.41.2",
 		});
+	});
+});
+
+describe("specMatchesVersion", () => {
+	it("matches exact version", () => {
+		expect(
+			specMatchesVersion({ type: "exact", version: "3.27.0" }, "3.27.0"),
+		).toBe(true);
+		expect(
+			specMatchesVersion({ type: "exact", version: "3.27.0" }, "3.27.1"),
+		).toBe(false);
+	});
+
+	it("matches major-only range", () => {
+		expect(specMatchesVersion({ type: "range", major: 3 }, "3.41.2")).toBe(
+			true,
+		);
+		expect(specMatchesVersion({ type: "range", major: 3 }, "2.10.5")).toBe(
+			false,
+		);
+	});
+
+	it("matches major.minor range", () => {
+		expect(
+			specMatchesVersion({ type: "range", major: 3, minor: 27 }, "3.27.4"),
+		).toBe(true);
+		expect(
+			specMatchesVersion({ type: "range", major: 3, minor: 27 }, "3.28.0"),
+		).toBe(false);
+	});
+
+	it("matches any and channel unconditionally", () => {
+		expect(specMatchesVersion({ type: "any" }, "1.0.0")).toBe(true);
+		expect(
+			specMatchesVersion({ type: "channel", channel: "stable" }, "9.9.9"),
+		).toBe(true);
+	});
+
+	it("matches constraint via semver", () => {
+		expect(
+			specMatchesVersion(
+				{ type: "constraint", range: ">=3.27.0 <3.28.0" },
+				"3.27.4",
+			),
+		).toBe(true);
+		expect(
+			specMatchesVersion(
+				{ type: "constraint", range: ">=3.27.0 <3.28.0" },
+				"3.28.0",
+			),
+		).toBe(false);
+	});
+
+	it("throws for ref spec", () => {
+		expect(() =>
+			specMatchesVersion({ type: "ref", ref: "abc1234" }, "3.27.0"),
+		).toThrow("ref spec cannot be used with release mode");
+	});
+});
+
+describe("findManifestVersion", () => {
+	it("resolves a range to the newest matching version on the channel", () => {
+		const result = findManifestVersion(
+			linuxFixture,
+			{ type: "range", major: 3, minor: 27 },
+			"stable",
+		);
+		expect(result).toEqual({
+			version: "3.27.4",
+			hash: "d8a9f9a52e5af486f80d932e838ee93861ffd863",
+		});
+	});
+
+	it("resolves a constraint to the newest matching version", () => {
+		const result = findManifestVersion(
+			linuxFixture,
+			{ type: "constraint", range: ">=3.10.0 <3.11.0" },
+			"stable",
+		);
+		expect(result?.version).toBe("3.10.6");
+	});
+
+	it("ignores architecture (matches even when no arm64 archive exists)", () => {
+		// linuxFixture has no arm64 archives, yet the version must still resolve
+		// because git mode clones the tag regardless of arch.
+		const result = findManifestVersion(
+			linuxFixture,
+			{ type: "exact", version: "3.41.2" },
+			"stable",
+		);
+		expect(result?.version).toBe("3.41.2");
+	});
+
+	it("filters by channel", () => {
+		const result = findManifestVersion(
+			linuxFixture,
+			{ type: "constraint", range: ">=3.42.0-0 <3.43.0" },
+			"beta",
+		);
+		expect(result?.version).toBe("3.42.0-0.1.pre");
+	});
+
+	it("returns null when nothing matches", () => {
+		const result = findManifestVersion(
+			linuxFixture,
+			{ type: "constraint", range: ">=9.0.0" },
+			"stable",
+		);
+		expect(result).toBeNull();
 	});
 });
 
