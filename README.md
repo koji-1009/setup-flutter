@@ -128,6 +128,12 @@ Install from a git repository instead of release archives:
     git-source: git
     channel: master
 
+# Specific version, resolved to the matching git tag
+- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+  with:
+    git-source: git
+    flutter-version: '3.x'
+
 # Custom fork
 - uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
   with:
@@ -135,6 +141,8 @@ Install from a git repository instead of release archives:
     git-source-url: https://github.com/user/flutter-fork.git
     flutter-version: my-branch
 ```
+
+Version ranges and constraints (e.g. `3.x`, `>=3.10.0 <3.20.0`) are resolved to a concrete git tag, and the action fails if no matching version exists rather than installing the channel HEAD. On the `stable` channel pre-release tags are excluded; `beta` and `master` include them.
 
 > **Note:** Specifying a commit hash as `flutter-version` with `git-source: git` requires a full clone (no `--depth 1`), which is slower. When using git source, `dart-version` output is `unknown` since it is not available from the git metadata.
 

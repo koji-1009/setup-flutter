@@ -18,11 +18,7 @@ import {
 	sdkCacheKey,
 	sdkCachePath,
 } from "../src/cache";
-import {
-	installFromGit,
-	isOriginalRepo,
-	resolveGitRef,
-} from "../src/git-source";
+import { installFromGit, isOriginalRepo, resolveGit } from "../src/git-source";
 import { installFromArchive, setupPath } from "../src/installer";
 import { getArch, getPlatform, getPubCachePath } from "../src/utils";
 import {
@@ -118,9 +114,10 @@ function setupDefaultMocks() {
 	vi.mocked(getPubCachePaths).mockReturnValue(["/home/runner/.pub-cache"]);
 
 	vi.mocked(isOriginalRepo).mockReturnValue(true);
-	vi.mocked(resolveGitRef).mockResolvedValue({
+	vi.mocked(resolveGit).mockResolvedValue({
 		commitHash: "hash1",
 		version: "3.29.3",
+		ref: "3.29.3",
 	});
 	vi.mocked(installFromGit).mockResolvedValue();
 
@@ -248,89 +245,103 @@ describe("main run()", () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs["flutter-version"] = "my-branch";
-		vi.mocked(parseVersionSpec).mockReturnValue({
-			type: "ref",
-			ref: "my-branch",
-		});
+		const spec = { type: "ref" as const, ref: "my-branch" };
+		vi.mocked(parseVersionSpec).mockReturnValue(spec);
 
 		await run();
 
-		expect(resolveGitRef).toHaveBeenCalled();
+		expect(resolveGit).toHaveBeenCalledWith(
+			"https://github.com/flutter/flutter.git",
+			spec,
+			"stable",
+			expect.anything(),
+		);
 		expect(installFromGit).toHaveBeenCalled();
 		expect(installFromArchive).not.toHaveBeenCalled();
 	});
 
-	it("uses git mode with exact version spec", async () => {
-		const { inputs } = setupDefaultMocks();
-		inputs["git-source"] = "git";
-		inputs["flutter-version"] = "3.29.0";
-		vi.mocked(parseVersionSpec).mockReturnValue({
-			type: "exact",
-			version: "3.29.0",
-		});
-
-		await run();
-
-		expect(resolveGitRef).toHaveBeenCalledWith(
-			"https://github.com/flutter/flutter.git",
-			"3.29.0",
-			expect.anything(),
-		);
-	});
-
-	it("uses git mode with channel spec", async () => {
+	it("uses git mode forwards the spec and channel to resolveGit", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs.channel = "beta";
-		vi.mocked(parseVersionSpec).mockReturnValue({
-			type: "channel",
-			channel: "beta",
-		});
+		const spec = { type: "channel" as const, channel: "beta" };
+		vi.mocked(parseVersionSpec).mockReturnValue(spec);
 
 		await run();
 
-		expect(resolveGitRef).toHaveBeenCalledWith(
+		expect(resolveGit).toHaveBeenCalledWith(
 			"https://github.com/flutter/flutter.git",
+			spec,
 			"beta",
 			expect.anything(),
 		);
 	});
 
-	it("uses git mode with range spec falls back to channel", async () => {
+	it("uses git mode with range spec resolves a concrete version", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs.channel = "stable";
-		vi.mocked(parseVersionSpec).mockReturnValue({
-			type: "range",
-			major: 3,
-			minor: undefined,
+		const spec = { type: "range" as const, major: 3, minor: 27 };
+		vi.mocked(parseVersionSpec).mockReturnValue(spec);
+		vi.mocked(resolveGit).mockResolvedValue({
+			commitHash: "hash3274",
+			version: "3.27.4",
+			ref: "3.27.4",
 		});
 
 		await run();
 
-		expect(resolveGitRef).toHaveBeenCalledWith(
+		// Must resolve the range, not silently fall back to the channel HEAD.
+		expect(resolveGit).toHaveBeenCalledWith(
 			"https://github.com/flutter/flutter.git",
+			spec,
 			"stable",
 			expect.anything(),
 		);
+		expect(installFromGit).toHaveBeenCalledWith(
+			"https://github.com/flutter/flutter.git",
+			"3.27.4",
+			expect.anything(),
+			"hash3274",
+		);
+		expect(setOutput).toHaveBeenCalledWith("flutter-version", "3.27.4");
 	});
 
-	it("uses git mode with constraint spec falls back to channel", async () => {
+	it("uses git mode wires the resolved version to the output", async () => {
+		const { inputs } = setupDefaultMocks();
+		inputs["git-source"] = "git";
+		inputs.channel = "stable";
+		const spec = { type: "constraint" as const, range: ">=3.10.0 <3.11.0" };
+		vi.mocked(parseVersionSpec).mockReturnValue(spec);
+		vi.mocked(resolveGit).mockResolvedValue({
+			commitHash: "hash3106",
+			version: "3.10.6",
+			ref: "3.10.6",
+		});
+
+		await run();
+
+		expect(setOutput).toHaveBeenCalledWith("flutter-version", "3.10.6");
+	});
+
+	it("uses git mode and fails when resolution throws", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs.channel = "stable";
 		vi.mocked(parseVersionSpec).mockReturnValue({
 			type: "constraint",
-			range: ">=3.29.0 <4.0.0",
+			range: ">=99.0.0",
 		});
+		vi.mocked(resolveGit).mockRejectedValue(
+			new Error("No version tag matching ... found"),
+		);
 
 		await run();
 
-		expect(resolveGitRef).toHaveBeenCalledWith(
-			"https://github.com/flutter/flutter.git",
-			"stable",
-			expect.anything(),
+		expect(setFailed).toHaveBeenCalledWith(
+			expect.stringContaining("No version tag matching"),
 		);
+		expect(installFromGit).not.toHaveBeenCalled();
 	});
 
 	it("uses git mode with cache hit skips install", async () => {
@@ -341,7 +352,7 @@ describe("main run()", () => {
 
 		await run();
 
-		expect(resolveGitRef).toHaveBeenCalled();
+		expect(resolveGit).toHaveBeenCalled();
 		expect(installFromGit).not.toHaveBeenCalled();
 	});
 
@@ -373,23 +384,22 @@ describe("main run()", () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs["flutter-version"] = "my-branch";
-		vi.mocked(parseVersionSpec).mockReturnValue({
-			type: "ref",
-			ref: "my-branch",
-		});
+		const spec = { type: "ref" as const, ref: "my-branch" };
+		vi.mocked(parseVersionSpec).mockReturnValue(spec);
 		vi.mocked(isOriginalRepo).mockReturnValue(false);
 
 		await run();
 
 		expect(fetchManifest).not.toHaveBeenCalled();
-		expect(resolveGitRef).toHaveBeenCalledWith(
+		expect(resolveGit).toHaveBeenCalledWith(
 			"https://github.com/flutter/flutter.git",
-			"my-branch",
+			spec,
+			"stable",
 			undefined,
 		);
 	});
 
-	it("uses git mode with empty version fallback to gitRef", async () => {
+	it("uses git mode and outputs the resolved ref name when no version", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs["flutter-version"] = "my-branch";
@@ -397,9 +407,10 @@ describe("main run()", () => {
 			type: "ref",
 			ref: "my-branch",
 		});
-		vi.mocked(resolveGitRef).mockResolvedValue({
+		vi.mocked(resolveGit).mockResolvedValue({
 			commitHash: "hash1",
-			version: undefined,
+			version: "my-branch",
+			ref: "my-branch",
 		});
 
 		await run();

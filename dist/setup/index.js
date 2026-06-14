@@ -19592,13 +19592,13 @@ var require_semver = __commonJS({
     var { safeRe: re, t } = require_re();
     var parseOptions = require_parse_options();
     var { compareIdentifiers } = require_identifiers();
-    var isPrereleaseIdentifier = (prerelease, identifier) => {
+    var isPrereleaseIdentifier = (prerelease2, identifier) => {
       const identifiers = identifier.split(".");
-      if (identifiers.length > prerelease.length) {
+      if (identifiers.length > prerelease2.length) {
         return false;
       }
       for (let i = 0; i < identifiers.length; i++) {
-        if (compareIdentifiers(prerelease[i], identifiers[i]) !== 0) {
+        if (compareIdentifiers(prerelease2[i], identifiers[i]) !== 0) {
           return false;
         }
       }
@@ -19846,17 +19846,17 @@ var require_semver = __commonJS({
               }
             }
             if (identifier) {
-              let prerelease = [identifier, base];
+              let prerelease2 = [identifier, base];
               if (identifierBase === false) {
-                prerelease = [identifier];
+                prerelease2 = [identifier];
               }
               if (isPrereleaseIdentifier(this.prerelease, identifier)) {
                 const prereleaseBase = this.prerelease[identifier.split(".").length];
                 if (isNaN(prereleaseBase)) {
-                  this.prerelease = prerelease;
+                  this.prerelease = prerelease2;
                 }
               } else {
-                this.prerelease = prerelease;
+                this.prerelease = prerelease2;
               }
             }
             break;
@@ -19902,11 +19902,11 @@ var require_valid = __commonJS({
   "node_modules/semver/functions/valid.js"(exports2, module2) {
     "use strict";
     var parse2 = require_parse2();
-    var valid2 = (version3, options) => {
+    var valid3 = (version3, options) => {
       const v = parse2(version3, options);
       return v ? v.version : null;
     };
-    module2.exports = valid2;
+    module2.exports = valid3;
   }
 });
 
@@ -20026,11 +20026,11 @@ var require_prerelease = __commonJS({
   "node_modules/semver/functions/prerelease.js"(exports2, module2) {
     "use strict";
     var parse2 = require_parse2();
-    var prerelease = (version3, options) => {
+    var prerelease2 = (version3, options) => {
       const parsed = parse2(version3, options);
       return parsed && parsed.prerelease.length ? parsed.prerelease : null;
     };
-    module2.exports = prerelease;
+    module2.exports = prerelease2;
   }
 });
 
@@ -20049,8 +20049,8 @@ var require_rcompare = __commonJS({
   "node_modules/semver/functions/rcompare.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
-    var rcompare = (a, b, loose) => compare(b, a, loose);
-    module2.exports = rcompare;
+    var rcompare2 = (a, b, loose) => compare(b, a, loose);
+    module2.exports = rcompare2;
   }
 });
 
@@ -20246,9 +20246,9 @@ var require_coerce = __commonJS({
       const major2 = match2[2];
       const minor2 = match2[3] || "0";
       const patch = match2[4] || "0";
-      const prerelease = options.includePrerelease && match2[5] ? `-${match2[5]}` : "";
+      const prerelease2 = options.includePrerelease && match2[5] ? `-${match2[5]}` : "";
       const build = options.includePrerelease && match2[6] ? `+${match2[6]}` : "";
-      return parse2(`${major2}.${minor2}.${patch}${prerelease}${build}`, options);
+      return parse2(`${major2}.${minor2}.${patch}${prerelease2}${build}`, options);
     };
     module2.exports = coerce;
   }
@@ -21310,16 +21310,16 @@ var require_semver2 = __commonJS({
     var SemVer = require_semver();
     var identifiers = require_identifiers();
     var parse2 = require_parse2();
-    var valid2 = require_valid();
+    var valid3 = require_valid();
     var clean3 = require_clean();
     var inc = require_inc();
     var diff = require_diff();
     var major2 = require_major();
     var minor2 = require_minor();
     var patch = require_patch();
-    var prerelease = require_prerelease();
+    var prerelease2 = require_prerelease();
     var compare = require_compare();
-    var rcompare = require_rcompare();
+    var rcompare2 = require_rcompare();
     var compareLoose = require_compare_loose();
     var compareBuild = require_compare_build();
     var sort = require_sort();
@@ -21349,16 +21349,16 @@ var require_semver2 = __commonJS({
     var subset = require_subset();
     module2.exports = {
       parse: parse2,
-      valid: valid2,
+      valid: valid3,
       clean: clean3,
       inc,
       diff,
       major: major2,
       minor: minor2,
       patch,
-      prerelease,
+      prerelease: prerelease2,
       compare,
-      rcompare,
+      rcompare: rcompare2,
       compareLoose,
       compareBuild,
       sort,
@@ -60376,7 +60376,154 @@ async function restorePubCache(paths, key) {
 }
 
 // src/git-source.ts
+var import_node_path3 = require("node:path");
+var import_semver2 = __toESM(require_semver2());
+
+// src/version.ts
+var import_semver = __toESM(require_semver2());
+
+// src/utils.ts
+var import_node_os3 = require("node:os");
 var import_node_path2 = require("node:path");
+function getPlatform() {
+  switch (process.platform) {
+    case "linux":
+      return "linux";
+    case "darwin":
+      return "macos";
+    case "win32":
+      return "windows";
+    default:
+      throw new Error(`Unsupported platform: ${process.platform}`);
+  }
+}
+function getArch(input) {
+  if (input) {
+    if (input === "x64" || input === "arm64") return input;
+    throw new Error(`Unsupported architecture: ${input}`);
+  }
+  switch (process.arch) {
+    case "x64":
+      return "x64";
+    case "arm64":
+      return "arm64";
+    default:
+      throw new Error(`Unsupported architecture: ${process.arch}`);
+  }
+}
+function getPubCachePath() {
+  if (process.env.PUB_CACHE) return process.env.PUB_CACHE;
+  const platform2 = getPlatform();
+  if (platform2 === "windows") {
+    const localAppData = process.env.LOCALAPPDATA;
+    if (!localAppData) {
+      throw new Error("LOCALAPPDATA environment variable is not set");
+    }
+    return (0, import_node_path2.join)(localAppData, "Pub", "Cache");
+  }
+  return (0, import_node_path2.join)((0, import_node_os3.homedir)(), ".pub-cache");
+}
+function getStorageBaseUrl() {
+  return (process.env.FLUTTER_STORAGE_BASE_URL || "https://storage.googleapis.com").replace(/\/$/, "");
+}
+function getManifestUrl(platform2) {
+  return `${getStorageBaseUrl()}/flutter_infra_release/releases/releases_${platform2}.json`;
+}
+
+// src/version.ts
+function parseVersionSpec(input) {
+  const trimmed = input.trim();
+  if (!trimmed || trimmed === "any") {
+    return { type: "any" };
+  }
+  if (trimmed === "stable" || trimmed === "beta" || trimmed === "master") {
+    return { type: "channel", channel: trimmed };
+  }
+  if (/[>=<^]/.test(trimmed)) {
+    return { type: "constraint", range: trimmed };
+  }
+  if (/^\d+\.x$/.test(trimmed) || /^\d+\.\d+\.x$/.test(trimmed)) {
+    const parts = trimmed.split(".");
+    const maj = parseInt(parts[0], 10);
+    if (parts.length >= 2 && parts[1] !== "x") {
+      return { type: "range", major: maj, minor: parseInt(parts[1], 10) };
+    }
+    return { type: "range", major: maj };
+  }
+  if (/^\d+\.\d+\.\d+/.test(trimmed)) {
+    return { type: "exact", version: trimmed };
+  }
+  return { type: "ref", ref: trimmed };
+}
+async function fetchManifest(platform2) {
+  info("Fetching Flutter release manifest...");
+  const url2 = getManifestUrl(platform2);
+  const http3 = new HttpClient("setup-flutter");
+  const response = await http3.getJson(url2);
+  if (!response.result) {
+    throw new Error(`Failed to fetch manifest from ${url2}`);
+  }
+  const manifest = response.result;
+  const customBaseUrl = process.env.FLUTTER_STORAGE_BASE_URL;
+  if (customBaseUrl && manifest.base_url.includes("googleapis.com")) {
+    manifest.base_url = manifest.base_url.replace(
+      "https://storage.googleapis.com",
+      getStorageBaseUrl()
+    );
+  }
+  return manifest;
+}
+function specMatchesVersion(spec, version3) {
+  switch (spec.type) {
+    case "exact":
+      return version3 === spec.version;
+    case "range": {
+      const maj = (0, import_semver.major)(version3);
+      const min = (0, import_semver.minor)(version3);
+      return maj === spec.major && (spec.minor === void 0 || min === spec.minor);
+    }
+    case "any":
+    case "channel":
+      return true;
+    case "constraint":
+      return (0, import_semver.satisfies)(version3, spec.range, { includePrerelease: true });
+    case "ref":
+      throw new Error("ref spec cannot be used with release mode");
+  }
+}
+function findMatchingRelease(manifest, spec, channel, arch2) {
+  for (const release of manifest.releases) {
+    if (release.channel !== channel) continue;
+    if (arch2 === "arm64") {
+      if (release.dart_sdk_arch !== "arm64") continue;
+    } else if (arch2 === "x64") {
+      if (release.dart_sdk_arch && release.dart_sdk_arch !== "x64") continue;
+    }
+    if (specMatchesVersion(spec, release.version)) {
+      return release;
+    }
+  }
+  return null;
+}
+function resolveFromManifest(manifest, spec, channel, arch2) {
+  const release = findMatchingRelease(manifest, spec, channel, arch2);
+  if (!release) return null;
+  return {
+    version: release.version,
+    channel: release.channel,
+    dartVersion: release.dart_sdk_version,
+    downloadUrl: `${manifest.base_url}/${release.archive}`,
+    hash: release.hash,
+    sha256: release.sha256,
+    arch: arch2
+  };
+}
+function findManifestVersion(manifest, spec, channel) {
+  const release = findMatchingRelease(manifest, spec, channel);
+  return release ? { version: release.version, hash: release.hash } : null;
+}
+
+// src/git-source.ts
 var FLUTTER_ORIGIN = "https://github.com/flutter/flutter";
 var HASH_PATTERN = /^[0-9a-f]{7,40}$/;
 var FULL_HASH_PATTERN = /^[0-9a-f]{40}$/;
@@ -60408,6 +60555,23 @@ function execWithTimeout(cmd, args, timeoutMs, options) {
     );
   });
 }
+async function lsRemote(url2, extraArgs = []) {
+  let output = "";
+  await execWithTimeout(
+    "git",
+    ["ls-remote", ...extraArgs, url2],
+    LS_REMOTE_TIMEOUT_MS,
+    {
+      env: { ...process.env, ...GIT_TIMEOUT_ENV },
+      listeners: {
+        stdout: (data) => {
+          output += data.toString();
+        }
+      }
+    }
+  );
+  return output.trim().split("\n");
+}
 function isOriginalRepo(url2) {
   const normalized = url2.toLowerCase().replace(/\.git$/, "");
   return normalized === FLUTTER_ORIGIN;
@@ -60429,16 +60593,7 @@ async function resolveGitRef(url2, ref, manifest) {
     }
   }
   info("Resolving ref via git ls-remote...");
-  let output = "";
-  await execWithTimeout("git", ["ls-remote", url2], LS_REMOTE_TIMEOUT_MS, {
-    env: { ...process.env, ...GIT_TIMEOUT_ENV },
-    listeners: {
-      stdout: (data) => {
-        output += data.toString();
-      }
-    }
-  });
-  for (const line of output.trim().split("\n")) {
+  for (const line of await lsRemote(url2)) {
     const [hash, refPath] = line.split("	");
     if (refPath === `refs/heads/${ref}` || refPath === `refs/tags/${ref}`) {
       return { commitHash: hash };
@@ -60453,6 +60608,72 @@ async function resolveGitRef(url2, ref, manifest) {
     return { commitHash: ref };
   }
   throw new Error(`Could not resolve ref '${ref}' in ${url2}`);
+}
+async function lsRemoteTags(url2) {
+  const byTag = /* @__PURE__ */ new Map();
+  for (const line of await lsRemote(url2, ["--tags"])) {
+    if (!line) continue;
+    const [hash, refPath] = line.split("	");
+    if (!refPath?.startsWith("refs/tags/")) continue;
+    const tag = refPath.slice("refs/tags/".length).replace(/\^\{\}$/, "");
+    byTag.set(tag, hash);
+  }
+  return byTag;
+}
+function selectBestVersionTag(tags2, spec, channel) {
+  let best = null;
+  for (const [tag, hash] of tags2) {
+    const version3 = (0, import_semver2.valid)(tag);
+    if (!version3) continue;
+    if (channel === "stable" && (0, import_semver2.prerelease)(version3) !== null) continue;
+    if (!specMatchesVersion(spec, version3)) continue;
+    if (!best || (0, import_semver2.rcompare)(version3, best.version) < 0) {
+      best = { commitHash: hash, version: version3, ref: tag };
+    }
+  }
+  return best;
+}
+async function resolveGitVersion(url2, spec, channel, manifest) {
+  if (isOriginalRepo(url2) && manifest) {
+    const match2 = findManifestVersion(manifest, spec, channel);
+    if (match2) {
+      return {
+        commitHash: match2.hash,
+        version: match2.version,
+        ref: match2.version
+      };
+    }
+  }
+  info("Resolving version from git tags via ls-remote...");
+  const best = selectBestVersionTag(await lsRemoteTags(url2), spec, channel);
+  if (!best) {
+    throw new Error(
+      `No version tag matching ${JSON.stringify(spec)} found in ${url2}`
+    );
+  }
+  return best;
+}
+async function resolveGit(url2, spec, channel, manifest) {
+  if (spec.type === "range" || spec.type === "constraint") {
+    return resolveGitVersion(url2, spec, channel, manifest);
+  }
+  let ref;
+  switch (spec.type) {
+    case "channel":
+      ref = spec.channel;
+      break;
+    case "exact":
+      ref = spec.version;
+      break;
+    case "ref":
+      ref = spec.ref;
+      break;
+    case "any":
+      ref = channel;
+      break;
+  }
+  const result = await resolveGitRef(url2, ref, manifest);
+  return { commitHash: result.commitHash, version: result.version || ref, ref };
 }
 async function installFromGit(url2, ref, sdkPath, commitHash) {
   const gitOpts = {
@@ -60481,15 +60702,15 @@ async function installFromGit(url2, ref, sdkPath, commitHash) {
     );
   }
   info("Running flutter precache...");
-  const flutterBin = (0, import_node_path2.join)(sdkPath, "bin", "flutter");
+  const flutterBin = (0, import_node_path3.join)(sdkPath, "bin", "flutter");
   await execWithTimeout(flutterBin, ["precache"], PRECACHE_TIMEOUT_MS);
 }
 
 // src/installer.ts
 var import_node_crypto5 = require("node:crypto");
 var import_node_fs3 = require("node:fs");
-var import_node_os3 = require("node:os");
-var import_node_path3 = require("node:path");
+var import_node_os4 = require("node:os");
+var import_node_path4 = require("node:path");
 var import_promises = require("node:stream/promises");
 var import_promises2 = require("node:timers/promises");
 
@@ -60685,7 +60906,7 @@ async function downloadWithHash(url2) {
       `Download failed: HTTP ${response.message.statusCode} for ${url2}`
     );
   }
-  const tmpFile = (0, import_node_path3.join)((0, import_node_os3.tmpdir)(), `flutter-${(0, import_node_crypto5.randomUUID)()}.archive`);
+  const tmpFile = (0, import_node_path4.join)((0, import_node_os4.tmpdir)(), `flutter-${(0, import_node_crypto5.randomUUID)()}.archive`);
   const hash = (0, import_node_crypto5.createHash)("sha256");
   const fileStream = (0, import_node_fs3.createWriteStream)(tmpFile);
   const contentLength2 = Number(response.message.headers["content-length"] || 0);
@@ -60774,156 +60995,18 @@ async function installFromArchive(resolved, sdkPath, platform2) {
   );
   try {
     info("Extracting archive...");
-    const extractParent = (0, import_node_path3.dirname)(sdkPath);
+    const extractParent = (0, import_node_path4.dirname)(sdkPath);
     await mkdirP(extractParent);
     const extractDir = platform2 === "linux" ? await extractTar2(tmpFile, extractParent, ["xJ"]) : await extractZip(tmpFile, extractParent);
-    await mv((0, import_node_path3.join)(extractDir, "flutter"), sdkPath);
+    await mv((0, import_node_path4.join)(extractDir, "flutter"), sdkPath);
   } finally {
     await rmRF(tmpFile);
   }
 }
 function setupPath(sdkPath) {
-  addPath((0, import_node_path3.join)(sdkPath, "bin"));
-  addPath((0, import_node_path3.join)(sdkPath, "bin", "cache", "dart-sdk", "bin"));
+  addPath((0, import_node_path4.join)(sdkPath, "bin"));
+  addPath((0, import_node_path4.join)(sdkPath, "bin", "cache", "dart-sdk", "bin"));
   exportVariable("FLUTTER_ROOT", sdkPath);
-}
-
-// src/utils.ts
-var import_node_os4 = require("node:os");
-var import_node_path4 = require("node:path");
-function getPlatform() {
-  switch (process.platform) {
-    case "linux":
-      return "linux";
-    case "darwin":
-      return "macos";
-    case "win32":
-      return "windows";
-    default:
-      throw new Error(`Unsupported platform: ${process.platform}`);
-  }
-}
-function getArch(input) {
-  if (input) {
-    if (input === "x64" || input === "arm64") return input;
-    throw new Error(`Unsupported architecture: ${input}`);
-  }
-  switch (process.arch) {
-    case "x64":
-      return "x64";
-    case "arm64":
-      return "arm64";
-    default:
-      throw new Error(`Unsupported architecture: ${process.arch}`);
-  }
-}
-function getPubCachePath() {
-  if (process.env.PUB_CACHE) return process.env.PUB_CACHE;
-  const platform2 = getPlatform();
-  if (platform2 === "windows") {
-    const localAppData = process.env.LOCALAPPDATA;
-    if (!localAppData) {
-      throw new Error("LOCALAPPDATA environment variable is not set");
-    }
-    return (0, import_node_path4.join)(localAppData, "Pub", "Cache");
-  }
-  return (0, import_node_path4.join)((0, import_node_os4.homedir)(), ".pub-cache");
-}
-function getStorageBaseUrl() {
-  return (process.env.FLUTTER_STORAGE_BASE_URL || "https://storage.googleapis.com").replace(/\/$/, "");
-}
-function getManifestUrl(platform2) {
-  return `${getStorageBaseUrl()}/flutter_infra_release/releases/releases_${platform2}.json`;
-}
-
-// src/version.ts
-var import_semver = __toESM(require_semver2());
-function parseVersionSpec(input) {
-  const trimmed = input.trim();
-  if (!trimmed || trimmed === "any") {
-    return { type: "any" };
-  }
-  if (trimmed === "stable" || trimmed === "beta" || trimmed === "master") {
-    return { type: "channel", channel: trimmed };
-  }
-  if (/[>=<^]/.test(trimmed)) {
-    return { type: "constraint", range: trimmed };
-  }
-  if (/^\d+\.x$/.test(trimmed) || /^\d+\.\d+\.x$/.test(trimmed)) {
-    const parts = trimmed.split(".");
-    const maj = parseInt(parts[0], 10);
-    if (parts.length >= 2 && parts[1] !== "x") {
-      return { type: "range", major: maj, minor: parseInt(parts[1], 10) };
-    }
-    return { type: "range", major: maj };
-  }
-  if (/^\d+\.\d+\.\d+/.test(trimmed)) {
-    return { type: "exact", version: trimmed };
-  }
-  return { type: "ref", ref: trimmed };
-}
-async function fetchManifest(platform2) {
-  info("Fetching Flutter release manifest...");
-  const url2 = getManifestUrl(platform2);
-  const http3 = new HttpClient("setup-flutter");
-  const response = await http3.getJson(url2);
-  if (!response.result) {
-    throw new Error(`Failed to fetch manifest from ${url2}`);
-  }
-  const manifest = response.result;
-  const customBaseUrl = process.env.FLUTTER_STORAGE_BASE_URL;
-  if (customBaseUrl && manifest.base_url.includes("googleapis.com")) {
-    manifest.base_url = manifest.base_url.replace(
-      "https://storage.googleapis.com",
-      getStorageBaseUrl()
-    );
-  }
-  return manifest;
-}
-function resolveFromManifest(manifest, spec, channel, arch2) {
-  for (const release of manifest.releases) {
-    if (release.channel !== channel) continue;
-    if (arch2 === "arm64") {
-      if (release.dart_sdk_arch !== "arm64") continue;
-    } else {
-      if (release.dart_sdk_arch && release.dart_sdk_arch !== "x64") continue;
-    }
-    let matched = false;
-    switch (spec.type) {
-      case "exact":
-        matched = release.version === spec.version;
-        break;
-      case "range": {
-        const maj = (0, import_semver.major)(release.version);
-        const min = (0, import_semver.minor)(release.version);
-        matched = maj === spec.major && (spec.minor === void 0 || min === spec.minor);
-        break;
-      }
-      case "any":
-      case "channel":
-        matched = true;
-        break;
-      case "constraint":
-        matched = (0, import_semver.satisfies)(release.version, spec.range, {
-          includePrerelease: true
-        });
-        break;
-      case "ref":
-        throw new Error("ref spec cannot be used with release mode");
-    }
-    if (matched) {
-      return {
-        version: release.version,
-        channel: release.channel,
-        dartVersion: release.dart_sdk_version,
-        downloadUrl: `${manifest.base_url}/${release.archive}`,
-        hash: release.hash,
-        sha256: release.sha256,
-        arch: arch2
-      };
-    }
-  }
-  return null;
 }
 
 // src/version-file.ts
@@ -61042,29 +61125,20 @@ async function run() {
         `Resolved Flutter ${resolved.version} (Dart ${resolved.dartVersion}) on ${resolved.channel}/${resolved.arch}`
       );
     } else {
-      switch (spec.type) {
-        case "channel":
-          gitRef = spec.channel;
-          break;
-        case "exact":
-          gitRef = spec.version;
-          break;
-        case "ref":
-          gitRef = spec.ref;
-          break;
-        case "constraint":
-        case "range":
-        case "any":
-          gitRef = channelInput;
-          break;
-      }
-      const useManifest = isOriginalRepo(gitSourceUrl);
-      const manifest = useManifest ? await fetchManifest(platform2) : void 0;
-      const gitResult = await resolveGitRef(gitSourceUrl, gitRef, manifest);
+      const manifest = isOriginalRepo(gitSourceUrl) ? await fetchManifest(platform2) : void 0;
+      const gitResult = await resolveGit(
+        gitSourceUrl,
+        spec,
+        channelInput,
+        manifest
+      );
+      gitRef = gitResult.ref;
       gitCommitHash = gitResult.commitHash;
-      info(`Resolved git ref '${gitRef}' -> ${gitCommitHash}`);
+      info(
+        `Resolved git ${JSON.stringify(spec)} -> Flutter ${gitResult.version} (${gitCommitHash})`
+      );
       resolved = {
-        version: gitResult.version || gitRef,
+        version: gitResult.version,
         channel: channelInput,
         dartVersion: "unknown",
         downloadUrl: "",
