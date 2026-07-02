@@ -137,6 +137,18 @@ describe("parseVersionSpec", () => {
 		});
 	});
 
+	it("throws for ambiguous major.minor form 3.4", () => {
+		expect(() => parseVersionSpec("3.4")).toThrow(
+			"Ambiguous version '3.4': use '3.4.x'",
+		);
+	});
+
+	it("throws for ambiguous bare major form 3", () => {
+		expect(() => parseVersionSpec("3")).toThrow(
+			"Ambiguous version '3': use '3.x'",
+		);
+	});
+
 	it("returns ref for branch name", () => {
 		expect(parseVersionSpec("my-feature-branch")).toEqual({
 			type: "ref",

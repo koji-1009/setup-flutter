@@ -40,6 +40,11 @@ export async function run(): Promise<void> {
 		const cacheSdk = getBooleanInput("cache-sdk");
 		const cachePub = getBooleanInput("cache-pub");
 		const gitSource = getInput("git-source") || "release";
+		if (gitSource !== "release" && gitSource !== "git") {
+			throw new Error(
+				`Invalid git-source: '${gitSource}' (expected 'release' or 'git')`,
+			);
+		}
 		const gitSourceUrl =
 			getInput("git-source-url") || "https://github.com/flutter/flutter.git";
 		const dryRun = getBooleanInput("dry-run");

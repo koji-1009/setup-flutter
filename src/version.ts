@@ -69,6 +69,15 @@ export function parseVersionSpec(input: string): VersionSpec {
 		return { type: "exact", version: trimmed };
 	}
 
+	// Bare "3" or "3.4" is ambiguous between an exact version and a series;
+	// reject it with guidance instead of guessing (or treating it as a git ref).
+	if (/^\d+(\.\d+)?$/.test(trimmed)) {
+		throw new Error(
+			`Ambiguous version '${trimmed}': use '${trimmed}.x' for the newest ${trimmed} release, ` +
+				`a full version like '${trimmed}${trimmed.includes(".") ? "" : ".0"}.0', or a range such as '>=${trimmed}'`,
+		);
+	}
+
 	return { type: "ref", ref: trimmed };
 }
 

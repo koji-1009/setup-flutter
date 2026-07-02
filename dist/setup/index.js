@@ -64516,6 +64516,11 @@ function parseVersionSpec(input) {
   if (/^\d+\.\d+\.\d+/.test(trimmed)) {
     return { type: "exact", version: trimmed };
   }
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    throw new Error(
+      `Ambiguous version '${trimmed}': use '${trimmed}.x' for the newest ${trimmed} release, a full version like '${trimmed}${trimmed.includes(".") ? "" : ".0"}.0', or a range such as '>=${trimmed}'`
+    );
+  }
   return { type: "ref", ref: trimmed };
 }
 function isRetryableFetchError(error2) {
@@ -65189,6 +65194,11 @@ async function run() {
     const cacheSdk = getBooleanInput("cache-sdk");
     const cachePub = getBooleanInput("cache-pub");
     const gitSource = getInput("git-source") || "release";
+    if (gitSource !== "release" && gitSource !== "git") {
+      throw new Error(
+        `Invalid git-source: '${gitSource}' (expected 'release' or 'git')`
+      );
+    }
     const gitSourceUrl = getInput("git-source-url") || "https://github.com/flutter/flutter.git";
     const dryRun = getBooleanInput("dry-run");
     const platform2 = getPlatform();
