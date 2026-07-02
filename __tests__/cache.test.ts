@@ -117,7 +117,9 @@ describe("restoreSdkCache", () => {
 	});
 
 	it("returns true on cache hit", async () => {
-		vi.mocked(existsSync).mockReturnValue(false);
+		// First existsSync call is the pre-restore local check (miss), the
+		// second validates the restored content (valid).
+		vi.mocked(existsSync).mockReturnValueOnce(false).mockReturnValue(true);
 		vi.mocked(restoreCache).mockResolvedValue(
 			"flutter-sdk-linux-stable-3.29.0-x64",
 		);
@@ -126,6 +128,21 @@ describe("restoreSdkCache", () => {
 			"flutter-sdk-linux-stable-3.29.0-x64",
 		);
 		expect(result).toBe(true);
+	});
+
+	it("returns false when the restored content is not a valid SDK", async () => {
+		vi.mocked(existsSync).mockReturnValue(false);
+		vi.mocked(restoreCache).mockResolvedValue(
+			"flutter-sdk-linux-stable-3.29.0-x64",
+		);
+		const result = await restoreSdkCache(
+			"/opt/flutter",
+			"flutter-sdk-linux-stable-3.29.0-x64",
+		);
+		expect(result).toBe(false);
+		expect(warning).toHaveBeenCalledWith(
+			expect.stringContaining("not a valid SDK"),
+		);
 	});
 
 	it("returns false on cache miss", async () => {

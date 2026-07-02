@@ -64400,10 +64400,17 @@ async function restoreSdkCache(sdkPath, key) {
   }
   try {
     const hit = await restoreCache([sdkPath], key);
-    if (hit !== void 0) {
-      info("SDK cache hit");
+    if (hit === void 0) {
+      return false;
     }
-    return hit !== void 0;
+    if (!isValidLocalSdk(sdkPath)) {
+      warning(
+        "SDK cache hit but the restored content is not a valid SDK; reinstalling"
+      );
+      return false;
+    }
+    info("SDK cache hit");
+    return true;
   } catch (e) {
     warning(`SDK cache restore failed: ${e}`);
     return false;
@@ -64787,6 +64794,7 @@ async function installFromGit(url2, ref, sdkPath, commitHash) {
     env: { ...process.env, ...GIT_TIMEOUT_ENV }
   };
   info(`Cloning Flutter from ${url2} (ref: ${ref})...`);
+  await rmRF(sdkPath);
   if (FULL_HASH_PATTERN.test(commitHash) && ref === commitHash) {
     await execWithTimeout(
       "git",
@@ -65113,6 +65121,7 @@ async function installFromArchive(resolved, sdkPath, platform2) {
     const extractParent = (0, import_node_path4.dirname)(sdkPath);
     await mkdirP(extractParent);
     const extractDir = platform2 === "linux" ? await extractTar2(tmpFile, extractParent, ["xJ"]) : await extractZip(tmpFile, extractParent);
+    await rmRF(sdkPath);
     await mv((0, import_node_path4.join)(extractDir, "flutter"), sdkPath);
   } finally {
     await rmRF(tmpFile);

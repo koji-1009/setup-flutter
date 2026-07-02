@@ -151,6 +151,10 @@ export async function installFromArchive(
 				? await extractTar(tmpFile, extractParent, ["xJ"])
 				: await extractZip(tmpFile, extractParent);
 
+		// A leftover partial directory (crashed install, interrupted cache
+		// restore) would make mv nest the SDK inside it as sdkPath/flutter,
+		// and the broken tree would then be saved to the cache. Start clean.
+		await rmRF(sdkPath);
 		await mv(join(extractDir, "flutter"), sdkPath);
 	} finally {
 		await rmRF(tmpFile);

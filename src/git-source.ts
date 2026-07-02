@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { info, warning } from "@actions/core";
 import { exec } from "@actions/exec";
+import { rmRF } from "@actions/io";
 import { prerelease, rcompare, valid } from "semver";
 import {
 	type FlutterManifest,
@@ -264,6 +265,9 @@ export async function installFromGit(
 	};
 
 	info(`Cloning Flutter from ${url} (ref: ${ref})...`);
+	// A leftover partial directory (crashed install, interrupted cache
+	// restore) would make the clone fail; start from a clean path.
+	await rmRF(sdkPath);
 	if (FULL_HASH_PATTERN.test(commitHash) && ref === commitHash) {
 		// Commit hash as ref requires full clone + checkout
 		await execWithTimeout(

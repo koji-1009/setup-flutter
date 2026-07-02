@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { exec } from "@actions/exec";
+import { rmRF } from "@actions/io";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	installFromGit,
@@ -13,6 +14,7 @@ import type { FlutterManifest } from "../src/version";
 
 vi.mock("@actions/exec");
 vi.mock("@actions/core");
+vi.mock("@actions/io");
 
 const fixture: FlutterManifest = JSON.parse(
 	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),
@@ -535,6 +537,7 @@ describe("resolveGit (dispatch)", () => {
 			ref: "my-branch",
 		});
 	});
+
 });
 
 describe("installFromGit", () => {
@@ -695,6 +698,19 @@ describe("installFromGit", () => {
 				"abc123def4567890abc123def4567890abc123de",
 			),
 		).rejects.toThrow("git clone failed");
+	});
+
+	it("removes a leftover sdkPath before cloning", async () => {
+		await installFromGit(
+			"https://github.com/flutter/flutter.git",
+			"stable",
+			"/opt/flutter",
+			FULL_HASH,
+		);
+		expect(rmRF).toHaveBeenCalledWith("/opt/flutter");
+		const rmOrder = vi.mocked(rmRF).mock.invocationCallOrder[0];
+		const cloneOrder = vi.mocked(exec).mock.invocationCallOrder[0];
+		expect(rmOrder).toBeLessThan(cloneOrder);
 	});
 
 	it("calls flutter precache after clone", async () => {
