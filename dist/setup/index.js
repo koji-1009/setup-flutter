@@ -64441,6 +64441,7 @@ var import_node_path3 = require("node:path");
 var import_semver2 = __toESM(require_semver2());
 
 // src/version.ts
+var import_promises = require("node:timers/promises");
 var import_semver = __toESM(require_semver2());
 
 // src/utils.ts
@@ -64492,6 +64493,7 @@ function getManifestUrl(platform2) {
 }
 
 // src/version.ts
+var MAX_FETCH_ATTEMPTS = 3;
 function parseVersionSpec(input) {
   const trimmed = input.trim();
   if (!trimmed || trimmed === "any") {
@@ -64516,15 +64518,38 @@ function parseVersionSpec(input) {
   }
   return { type: "ref", ref: trimmed };
 }
+function isRetryableFetchError(error2) {
+  const status = error2.statusCode;
+  if (typeof status === "number") {
+    return status >= 500 || status === 408 || status === 429;
+  }
+  return true;
+}
 async function fetchManifest(platform2) {
   info("Fetching Flutter release manifest...");
   const url2 = getManifestUrl(platform2);
   const http3 = new HttpClient("setup-flutter");
-  const response = await http3.getJson(url2);
-  if (!response.result) {
+  let result;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      result = (await http3.getJson(url2)).result;
+      break;
+    } catch (error2) {
+      const err = error2 instanceof Error ? error2 : new Error(String(error2));
+      if (!isRetryableFetchError(err) || attempt >= MAX_FETCH_ATTEMPTS) {
+        throw err;
+      }
+      const delaySec = Math.floor(Math.random() * 11) + 10;
+      info(
+        `Manifest fetch attempt ${attempt}/${MAX_FETCH_ATTEMPTS} failed: ${err.message}. Retrying in ${delaySec}s...`
+      );
+      await (0, import_promises.setTimeout)(delaySec * 1e3);
+    }
+  }
+  if (!result) {
     throw new Error(`Failed to fetch manifest from ${url2}`);
   }
-  const manifest = response.result;
+  const manifest = result;
   const customBaseUrl = process.env.FLUTTER_STORAGE_BASE_URL;
   if (customBaseUrl && manifest.base_url.includes("googleapis.com")) {
     manifest.base_url = manifest.base_url.replace(
@@ -64796,8 +64821,8 @@ var import_node_crypto5 = require("node:crypto");
 var import_node_fs3 = require("node:fs");
 var import_node_os4 = require("node:os");
 var import_node_path4 = require("node:path");
-var import_promises = require("node:stream/promises");
-var import_promises2 = require("node:timers/promises");
+var import_promises2 = require("node:stream/promises");
+var import_promises3 = require("node:timers/promises");
 
 // node_modules/@actions/tool-cache/lib/tool-cache.js
 var crypto4 = __toESM(require("crypto"), 1);
@@ -64999,7 +65024,7 @@ async function downloadWithHash(url2) {
   let nextThreshold = 10;
   const startTime = Date.now();
   try {
-    await (0, import_promises.pipeline)(
+    await (0, import_promises2.pipeline)(
       response.message,
       async function* (source) {
         for await (const chunk of source) {
@@ -65068,7 +65093,7 @@ async function downloadAndVerify(url2, expectedSha256) {
       info(
         `Download attempt ${attempt}/${MAX_DOWNLOAD_ATTEMPTS} failed: ${err.message}. Retrying in ${delaySec}s...`
       );
-      await (0, import_promises2.setTimeout)(delaySec * 1e3);
+      await (0, import_promises3.setTimeout)(delaySec * 1e3);
     }
   }
 }

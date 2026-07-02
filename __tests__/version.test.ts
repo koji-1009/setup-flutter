@@ -19,6 +19,10 @@ import {
 } from "../src/version";
 
 vi.mock("@actions/http-client");
+vi.mock("@actions/core");
+vi.mock("node:timers/promises", () => ({
+	setTimeout: vi.fn().mockResolvedValue(undefined),
+}));
 
 const linuxFixture: FlutterManifest = JSON.parse(
 	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),
@@ -601,14 +605,63 @@ describe("fetchManifest", () => {
 	});
 
 	it("throws when result is null", async () => {
+		const getJson = vi.fn().mockResolvedValue({ result: null });
 		HttpClient.mockImplementation(
 			class {
-				getJson = vi.fn().mockResolvedValue({ result: null });
+				getJson = getJson;
 			},
 		);
 
 		await expect(fetchManifest("linux")).rejects.toThrow(
 			"Failed to fetch manifest",
 		);
+		// A 404 (null result) must not be retried.
+		expect(getJson).toHaveBeenCalledTimes(1);
+	});
+
+	it("retries on HTTP 500 and succeeds on next attempt", async () => {
+		const getJson = vi
+			.fn()
+			.mockRejectedValueOnce(
+				Object.assign(new Error("Failed request: (500)"), { statusCode: 500 }),
+			)
+			.mockResolvedValue({ result: JSON.parse(JSON.stringify(linuxFixture)) });
+		HttpClient.mockImplementation(
+			class {
+				getJson = getJson;
+			},
+		);
+
+		const result = await fetchManifest("linux");
+		expect(result.releases.length).toBeGreaterThan(0);
+		expect(getJson).toHaveBeenCalledTimes(2);
+	});
+
+	it("retries on network error and throws after exhausting attempts", async () => {
+		const getJson = vi.fn().mockRejectedValue(new Error("ECONNRESET"));
+		HttpClient.mockImplementation(
+			class {
+				getJson = getJson;
+			},
+		);
+
+		await expect(fetchManifest("linux")).rejects.toThrow("ECONNRESET");
+		expect(getJson).toHaveBeenCalledTimes(3);
+	});
+
+	it("does not retry on HTTP 403", async () => {
+		const getJson = vi
+			.fn()
+			.mockRejectedValue(
+				Object.assign(new Error("Failed request: (403)"), { statusCode: 403 }),
+			);
+		HttpClient.mockImplementation(
+			class {
+				getJson = getJson;
+			},
+		);
+
+		await expect(fetchManifest("linux")).rejects.toThrow("(403)");
+		expect(getJson).toHaveBeenCalledTimes(1);
 	});
 });
