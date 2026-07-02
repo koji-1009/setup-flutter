@@ -21,6 +21,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter (stable latest)
         uses: ./
@@ -40,6 +42,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter (exact version)
         uses: ./
@@ -55,6 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter (dry-run)
         id: flutter
@@ -63,7 +69,10 @@ jobs:
           dry-run: true
 
       - name: Verify outputs
+        env:
+          FLUTTER_VERSION: ${{ steps.flutter.outputs.flutter-version }}
+          CHANNEL: ${{ steps.flutter.outputs.channel }}
         run: |
-          echo "Flutter version: ${{ steps.flutter.outputs.flutter-version }}"
-          echo "Channel: ${{ steps.flutter.outputs.channel }}"
-          test -n "${{ steps.flutter.outputs.flutter-version }}"
+          echo "Flutter version: $FLUTTER_VERSION"
+          echo "Channel: $CHANNEL"
+          test -n "$FLUTTER_VERSION"
