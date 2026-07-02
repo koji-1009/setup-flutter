@@ -64736,6 +64736,22 @@ async function resolveGit(url2, spec, channel, manifest) {
   const result = await resolveGitRef(url2, ref, manifest);
   return { commitHash: result.commitHash, version: result.version || ref, ref };
 }
+async function revParseHead(sdkPath) {
+  let output = "";
+  await execWithTimeout(
+    "git",
+    ["-C", sdkPath, "rev-parse", "HEAD"],
+    LS_REMOTE_TIMEOUT_MS,
+    {
+      listeners: {
+        stdout: (data) => {
+          output += data.toString();
+        }
+      }
+    }
+  );
+  return output.trim();
+}
 async function installFromGit(url2, ref, sdkPath, commitHash) {
   const gitOpts = {
     env: { ...process.env, ...GIT_TIMEOUT_ENV }
@@ -64761,6 +64777,14 @@ async function installFromGit(url2, ref, sdkPath, commitHash) {
       GIT_TIMEOUT_MS,
       gitOpts
     );
+    if (FULL_HASH_PATTERN.test(commitHash)) {
+      const head = await revParseHead(sdkPath);
+      if (head !== commitHash) {
+        throw new Error(
+          `Cloned HEAD ${head} does not match resolved commit ${commitHash} for ref '${ref}'. The remote may have been updated during installation; retry the job.`
+        );
+      }
+    }
   }
   info("Running flutter precache...");
   const flutterBin = (0, import_node_path3.join)(sdkPath, "bin", "flutter");

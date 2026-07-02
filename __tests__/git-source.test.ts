@@ -538,9 +538,22 @@ describe("resolveGit (dispatch)", () => {
 });
 
 describe("installFromGit", () => {
+	const FULL_HASH = "abc123def4567890abc123def4567890abc123de";
+
+	// Echo FULL_HASH for `git rev-parse HEAD` so the post-clone verification
+	// passes by default; tests override this to simulate a mismatch.
+	function mockExecWithHead(head: string) {
+		vi.mocked(exec).mockImplementation(async (_cmd, args, options) => {
+			if (args?.includes("rev-parse")) {
+				options?.listeners?.stdout?.(Buffer.from(`${head}\n`));
+			}
+			return 0;
+		});
+	}
+
 	beforeEach(() => {
 		vi.clearAllMocks();
-		vi.mocked(exec).mockResolvedValue(0);
+		mockExecWithHead(FULL_HASH);
 	});
 
 	const gitEnvMatcher = expect.objectContaining({
@@ -612,6 +625,46 @@ describe("installFromGit", () => {
 			],
 			gitEnvMatcher,
 		);
+	});
+
+	it("verifies cloned HEAD against the resolved commit for branch ref", async () => {
+		await installFromGit(
+			"https://github.com/flutter/flutter.git",
+			"stable",
+			"/opt/flutter",
+			FULL_HASH,
+		);
+		expect(exec).toHaveBeenCalledWith(
+			"git",
+			["-C", "/opt/flutter", "rev-parse", "HEAD"],
+			expect.anything(),
+		);
+	});
+
+	it("throws when cloned HEAD does not match the resolved commit", async () => {
+		mockExecWithHead("1111111111111111111111111111111111111111");
+
+		await expect(
+			installFromGit(
+				"https://github.com/flutter/flutter.git",
+				"stable",
+				"/opt/flutter",
+				FULL_HASH,
+			),
+		).rejects.toThrow("does not match resolved commit");
+	});
+
+	it("skips HEAD verification for short hash commitHash", async () => {
+		await installFromGit(
+			"https://github.com/flutter/flutter.git",
+			"stable",
+			"/opt/flutter",
+			"abc1234",
+		);
+		const revParseCall = vi
+			.mocked(exec)
+			.mock.calls.find((c) => (c[1] as string[])?.includes("rev-parse"));
+		expect(revParseCall).toBeUndefined();
 	});
 
 	it("throws when command times out", async () => {

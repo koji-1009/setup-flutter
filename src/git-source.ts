@@ -236,6 +236,23 @@ export async function resolveGit(
 	return { commitHash: result.commitHash, version: result.version || ref, ref };
 }
 
+async function revParseHead(sdkPath: string): Promise<string> {
+	let output = "";
+	await execWithTimeout(
+		"git",
+		["-C", sdkPath, "rev-parse", "HEAD"],
+		LS_REMOTE_TIMEOUT_MS,
+		{
+			listeners: {
+				stdout: (data: Buffer) => {
+					output += data.toString();
+				},
+			},
+		},
+	);
+	return output.trim();
+}
+
 export async function installFromGit(
 	url: string,
 	ref: string,
@@ -269,6 +286,19 @@ export async function installFromGit(
 			GIT_TIMEOUT_MS,
 			gitOpts,
 		);
+		// The SDK cache is keyed by the commit hash resolved via ls-remote, so a
+		// remote that moved between resolution and clone would poison the cache
+		// with content that doesn't match its key. Fail loudly instead; a rerun
+		// re-resolves the ref.
+		if (FULL_HASH_PATTERN.test(commitHash)) {
+			const head = await revParseHead(sdkPath);
+			if (head !== commitHash) {
+				throw new Error(
+					`Cloned HEAD ${head} does not match resolved commit ${commitHash} for ref '${ref}'. ` +
+						"The remote may have been updated during installation; retry the job.",
+				);
+			}
+		}
 	}
 
 	info("Running flutter precache...");
