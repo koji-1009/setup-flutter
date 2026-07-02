@@ -33,6 +33,14 @@ export function sdkCachePath(
 			`git-${gitConfig.commitHash.slice(0, 7)}-${arch}`,
 		);
 	}
+	// version comes from the release manifest (an external service); refuse
+	// anything that could escape the tool-cache directory.
+	const safeComponent = /^[A-Za-z0-9+._-]+$/;
+	if (!safeComponent.test(version) || !safeComponent.test(channel)) {
+		throw new Error(
+			`Unsafe path component in version '${version}' or channel '${channel}'`,
+		);
+	}
 	return join(toolCache, "flutter", `${version}-${channel}-${arch}`);
 }
 

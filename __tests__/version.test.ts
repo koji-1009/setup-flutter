@@ -76,6 +76,12 @@ describe("parseVersionSpec", () => {
 		});
 	});
 
+	it("throws for a constraint that is not a valid semver range", () => {
+		expect(() => parseVersionSpec(">=abc")).toThrow(
+			"Invalid version constraint '>=abc'",
+		);
+	});
+
 	it("returns ref for ~ (not a Dart constraint)", () => {
 		expect(parseVersionSpec("~3.27.0")).toEqual({
 			type: "ref",

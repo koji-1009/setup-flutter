@@ -82,6 +82,24 @@ describe("sdkCachePath", () => {
 		expect(result).toContain("git-abc1234-x64");
 	});
 
+	it("throws when version contains a path separator", () => {
+		expect(() => sdkCachePath("../evil", "stable", "x64")).toThrow(
+			"Unsafe path component",
+		);
+	});
+
+	it("throws when channel contains a path separator", () => {
+		expect(() => sdkCachePath("3.29.0", "sta/ble", "x64")).toThrow(
+			"Unsafe path component",
+		);
+	});
+
+	it("accepts hotfix-style versions", () => {
+		expect(sdkCachePath("v1.12.13+hotfix.9", "stable", "x64")).toContain(
+			"v1.12.13+hotfix.9-stable-x64",
+		);
+	});
+
 	it("uses RUNNER_TOOL_CACHE env var", () => {
 		const original = process.env.RUNNER_TOOL_CACHE;
 		process.env.RUNNER_TOOL_CACHE = "/custom/cache";
