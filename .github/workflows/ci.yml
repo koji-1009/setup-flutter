@@ -20,7 +20,8 @@ jobs:
           node-version: 24.x
           cache: npm
 
-      - run: npm ci
+      # Consistent with release/auto-merge: no dependency install scripts in CI
+      - run: npm ci --ignore-scripts
       - run: npm run lint
       - run: npm run build
       - run: npm run test:coverage
