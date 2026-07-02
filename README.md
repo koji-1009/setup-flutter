@@ -168,6 +168,16 @@ The action sets the following outputs:
 | `cache-pub-hit`   | Whether pub cache was restored                    |
 | `architecture`    | Resolved CPU architecture                         |
 
+## Security
+
+The intro bullets above are backed by a consistent design: every artifact this action installs is verified, and no input ever reaches a shell.
+
+* **Archive verification** — Release archives are downloaded over HTTPS and verified against the SHA-256 checksum in the official release manifest before extraction. A mismatch fails the run.
+* **Git mode verification** — Versions and refs are resolved to a commit hash first (via the release manifest or `git ls-remote`), and after cloning the checkout is verified to match that commit. SDK caches are keyed by the commit hash and the repository URL.
+* **No shell interpolation** — Inputs and version-file contents are passed to subprocesses as argument arrays. Nothing is ever interpolated into a shell command.
+* **Supply chain** — All runtime dependencies are bundled into `dist/`, and CI verifies the bundle is reproducible from source on every change. The repository's own workflows are SHA-pinned, run with minimal permissions, and use `npm ci --ignore-scripts` wherever a write token is present.
+* **Cache integrity** — Caches are restored by exact key match only. There is no partial-match fallback that could restore unexpected content.
+
 ## Blog Post
 
 [Why I Built a New GitHub Action for Flutter](https://koji-1009.medium.com/why-i-built-a-new-github-action-for-flutter-592c24e96a55) — design decisions and motivation behind this action.
