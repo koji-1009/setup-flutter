@@ -1,7 +1,10 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import { info } from "@actions/core";
 import { HttpClient } from "@actions/http-client";
 import { major, minor, satisfies } from "semver";
 import { getManifestUrl, getStorageBaseUrl } from "./utils";
+
+const MAX_FETCH_ATTEMPTS = 3;
 
 export interface FlutterRelease {
 	hash: string;
@@ -66,7 +69,26 @@ export function parseVersionSpec(input: string): VersionSpec {
 		return { type: "exact", version: trimmed };
 	}
 
+	// Bare "3" or "3.4" is ambiguous between an exact version and a series;
+	// reject it with guidance instead of guessing (or treating it as a git ref).
+	if (/^\d+(\.\d+)?$/.test(trimmed)) {
+		throw new Error(
+			`Ambiguous version '${trimmed}': use '${trimmed}.x' for the newest ${trimmed} release, ` +
+				`a full version like '${trimmed}${trimmed.includes(".") ? "" : ".0"}.0', or a range such as '>=${trimmed}'`,
+		);
+	}
+
 	return { type: "ref", ref: trimmed };
+}
+
+// getJson throws HttpClientError (with statusCode) on non-2xx responses other
+// than 404; plain network errors carry no statusCode and are always retryable.
+function isRetryableFetchError(error: Error): boolean {
+	const status = (error as { statusCode?: unknown }).statusCode;
+	if (typeof status === "number") {
+		return status >= 500 || status === 408 || status === 429;
+	}
+	return true;
 }
 
 export async function fetchManifest(
@@ -75,12 +97,29 @@ export async function fetchManifest(
 	info("Fetching Flutter release manifest...");
 	const url = getManifestUrl(platform);
 	const http = new HttpClient("setup-flutter");
-	const response = await http.getJson<FlutterManifest>(url);
-	if (!response.result) {
+
+	let result: FlutterManifest | null;
+	for (let attempt = 1; ; attempt++) {
+		try {
+			result = (await http.getJson<FlutterManifest>(url)).result;
+			break;
+		} catch (error) {
+			const err = error instanceof Error ? error : new Error(String(error));
+			if (!isRetryableFetchError(err) || attempt >= MAX_FETCH_ATTEMPTS) {
+				throw err;
+			}
+			const delaySec = Math.floor(Math.random() * 11) + 10;
+			info(
+				`Manifest fetch attempt ${attempt}/${MAX_FETCH_ATTEMPTS} failed: ${err.message}. Retrying in ${delaySec}s...`,
+			);
+			await sleep(delaySec * 1000);
+		}
+	}
+	if (!result) {
+		// getJson maps a 404 to a null result; retrying won't help
 		throw new Error(`Failed to fetch manifest from ${url}`);
 	}
-
-	const manifest = response.result;
+	const manifest = result;
 	const customBaseUrl = process.env.FLUTTER_STORAGE_BASE_URL;
 	if (customBaseUrl && manifest.base_url.includes("googleapis.com")) {
 		manifest.base_url = manifest.base_url.replace(

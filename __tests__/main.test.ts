@@ -241,6 +241,19 @@ describe("main run()", () => {
 		);
 	});
 
+	it("calls setFailed for an invalid git-source value", async () => {
+		const { inputs } = setupDefaultMocks();
+		inputs["git-source"] = "releases";
+
+		await run();
+
+		expect(setFailed).toHaveBeenCalledWith(
+			expect.stringContaining("Invalid git-source"),
+		);
+		expect(fetchManifest).not.toHaveBeenCalled();
+		expect(installFromArchive).not.toHaveBeenCalled();
+	});
+
 	it("uses git mode with ref spec", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
