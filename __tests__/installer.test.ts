@@ -237,6 +237,19 @@ describe("installFromArchive", () => {
 			"/opt/flutter",
 		);
 	});
+
+	it("removes a leftover sdkPath before moving the SDK into place", async () => {
+		// io.mv nests the source inside an existing destination directory, so a
+		// partial leftover would produce sdkPath/flutter and a broken install.
+		await installFromArchive(resolved, "/opt/flutter", "linux");
+		expect(rmRF).toHaveBeenCalledWith("/opt/flutter");
+		const rmIndex = vi
+			.mocked(rmRF)
+			.mock.calls.findIndex((c) => c[0] === "/opt/flutter");
+		const rmOrder = vi.mocked(rmRF).mock.invocationCallOrder[rmIndex];
+		const mvOrder = vi.mocked(mv).mock.invocationCallOrder[0];
+		expect(rmOrder).toBeLessThan(mvOrder);
+	});
 });
 
 describe("download retry", () => {

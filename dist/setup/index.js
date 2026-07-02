@@ -21215,14 +21215,14 @@ var require_valid2 = __commonJS({
   "node_modules/semver/ranges/valid.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
-    var validRange = (range2, options) => {
+    var validRange2 = (range2, options) => {
       try {
         return new Range(range2, options).range || "*";
       } catch (er) {
         return null;
       }
     };
-    module2.exports = validRange;
+    module2.exports = validRange2;
   }
 });
 
@@ -21580,7 +21580,7 @@ var require_semver2 = __commonJS({
     var maxSatisfying = require_max_satisfying();
     var minSatisfying = require_min_satisfying();
     var minVersion = require_min_version();
-    var validRange = require_valid2();
+    var validRange2 = require_valid2();
     var outside = require_outside();
     var gtr = require_gtr();
     var ltr = require_ltr();
@@ -21619,7 +21619,7 @@ var require_semver2 = __commonJS({
       maxSatisfying,
       minSatisfying,
       minVersion,
-      validRange,
+      validRange: validRange2,
       outside,
       gtr,
       ltr,
@@ -64388,6 +64388,12 @@ function sdkCachePath(version3, channel, arch2, gitConfig) {
       `git-${gitConfig.commitHash.slice(0, 7)}-${arch2}`
     );
   }
+  const safeComponent = /^[A-Za-z0-9+._-]+$/;
+  if (!safeComponent.test(version3) || !safeComponent.test(channel)) {
+    throw new Error(
+      `Unsafe path component in version '${version3}' or channel '${channel}'`
+    );
+  }
   return (0, import_node_path.join)(toolCache, "flutter", `${version3}-${channel}-${arch2}`);
 }
 function isValidLocalSdk(sdkPath) {
@@ -64400,10 +64406,17 @@ async function restoreSdkCache(sdkPath, key) {
   }
   try {
     const hit = await restoreCache([sdkPath], key);
-    if (hit !== void 0) {
-      info("SDK cache hit");
+    if (hit === void 0) {
+      return false;
     }
-    return hit !== void 0;
+    if (!isValidLocalSdk(sdkPath)) {
+      warning(
+        "SDK cache hit but the restored content is not a valid SDK; reinstalling"
+      );
+      return false;
+    }
+    info("SDK cache hit");
+    return true;
   } catch (e) {
     warning(`SDK cache restore failed: ${e}`);
     return false;
@@ -64503,6 +64516,11 @@ function parseVersionSpec(input) {
     return { type: "channel", channel: trimmed };
   }
   if (/[>=<^]/.test(trimmed)) {
+    if ((0, import_semver.validRange)(trimmed) === null) {
+      throw new Error(
+        `Invalid version constraint '${trimmed}': use a semver range like '>=3.29.0 <4.0.0'`
+      );
+    }
     return { type: "constraint", range: trimmed };
   }
   if (/^\d+\.x$/.test(trimmed) || /^\d+\.\d+\.x$/.test(trimmed)) {
@@ -64705,6 +64723,7 @@ async function lsRemoteTags(url2) {
   for (const line of await lsRemote(url2, ["--tags"])) {
     if (!line) continue;
     const [hash, refPath] = line.split("	");
+    if (!FULL_HASH_PATTERN.test(hash)) continue;
     if (!refPath?.startsWith("refs/tags/")) continue;
     const tag = refPath.slice("refs/tags/".length).replace(/\^\{\}$/, "");
     byTag.set(tag, hash);
@@ -64745,26 +64764,38 @@ async function resolveGitVersion(url2, spec, channel, manifest) {
   return best;
 }
 async function resolveGit(url2, spec, channel, manifest) {
+  let resolution;
   if (spec.type === "range" || spec.type === "constraint") {
-    return resolveGitVersion(url2, spec, channel, manifest);
+    resolution = await resolveGitVersion(url2, spec, channel, manifest);
+  } else {
+    let ref;
+    switch (spec.type) {
+      case "channel":
+        ref = spec.channel;
+        break;
+      case "exact":
+        ref = spec.version;
+        break;
+      case "ref":
+        ref = spec.ref;
+        break;
+      case "any":
+        ref = channel;
+        break;
+    }
+    const result = await resolveGitRef(url2, ref, manifest);
+    resolution = {
+      commitHash: result.commitHash,
+      version: result.version || ref,
+      ref
+    };
   }
-  let ref;
-  switch (spec.type) {
-    case "channel":
-      ref = spec.channel;
-      break;
-    case "exact":
-      ref = spec.version;
-      break;
-    case "ref":
-      ref = spec.ref;
-      break;
-    case "any":
-      ref = channel;
-      break;
+  if (!HASH_PATTERN.test(resolution.commitHash)) {
+    throw new Error(
+      `Resolved commit hash '${resolution.commitHash}' for ${JSON.stringify(spec)} is not a valid commit hash`
+    );
   }
-  const result = await resolveGitRef(url2, ref, manifest);
-  return { commitHash: result.commitHash, version: result.version || ref, ref };
+  return resolution;
 }
 async function revParseHead(sdkPath) {
   let output = "";
@@ -64787,6 +64818,7 @@ async function installFromGit(url2, ref, sdkPath, commitHash) {
     env: { ...process.env, ...GIT_TIMEOUT_ENV }
   };
   info(`Cloning Flutter from ${url2} (ref: ${ref})...`);
+  await rmRF(sdkPath);
   if (FULL_HASH_PATTERN.test(commitHash) && ref === commitHash) {
     await execWithTimeout(
       "git",
@@ -65113,6 +65145,7 @@ async function installFromArchive(resolved, sdkPath, platform2) {
     const extractParent = (0, import_node_path4.dirname)(sdkPath);
     await mkdirP(extractParent);
     const extractDir = platform2 === "linux" ? await extractTar2(tmpFile, extractParent, ["xJ"]) : await extractZip(tmpFile, extractParent);
+    await rmRF(sdkPath);
     await mv((0, import_node_path4.join)(extractDir, "flutter"), sdkPath);
   } finally {
     await rmRF(tmpFile);

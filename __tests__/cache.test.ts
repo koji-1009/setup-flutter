@@ -82,6 +82,24 @@ describe("sdkCachePath", () => {
 		expect(result).toContain("git-abc1234-x64");
 	});
 
+	it("throws when version contains a path separator", () => {
+		expect(() => sdkCachePath("../evil", "stable", "x64")).toThrow(
+			"Unsafe path component",
+		);
+	});
+
+	it("throws when channel contains a path separator", () => {
+		expect(() => sdkCachePath("3.29.0", "sta/ble", "x64")).toThrow(
+			"Unsafe path component",
+		);
+	});
+
+	it("accepts hotfix-style versions", () => {
+		expect(sdkCachePath("v1.12.13+hotfix.9", "stable", "x64")).toContain(
+			"v1.12.13+hotfix.9-stable-x64",
+		);
+	});
+
 	it("uses RUNNER_TOOL_CACHE env var", () => {
 		const original = process.env.RUNNER_TOOL_CACHE;
 		process.env.RUNNER_TOOL_CACHE = "/custom/cache";
@@ -117,7 +135,9 @@ describe("restoreSdkCache", () => {
 	});
 
 	it("returns true on cache hit", async () => {
-		vi.mocked(existsSync).mockReturnValue(false);
+		// First existsSync call is the pre-restore local check (miss), the
+		// second validates the restored content (valid).
+		vi.mocked(existsSync).mockReturnValueOnce(false).mockReturnValue(true);
 		vi.mocked(restoreCache).mockResolvedValue(
 			"flutter-sdk-linux-stable-3.29.0-x64",
 		);
@@ -126,6 +146,21 @@ describe("restoreSdkCache", () => {
 			"flutter-sdk-linux-stable-3.29.0-x64",
 		);
 		expect(result).toBe(true);
+	});
+
+	it("returns false when the restored content is not a valid SDK", async () => {
+		vi.mocked(existsSync).mockReturnValue(false);
+		vi.mocked(restoreCache).mockResolvedValue(
+			"flutter-sdk-linux-stable-3.29.0-x64",
+		);
+		const result = await restoreSdkCache(
+			"/opt/flutter",
+			"flutter-sdk-linux-stable-3.29.0-x64",
+		);
+		expect(result).toBe(false);
+		expect(warning).toHaveBeenCalledWith(
+			expect.stringContaining("not a valid SDK"),
+		);
 	});
 
 	it("returns false on cache miss", async () => {

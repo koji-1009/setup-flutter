@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { exec } from "@actions/exec";
+import { rmRF } from "@actions/io";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	installFromGit,
@@ -13,6 +14,7 @@ import type { FlutterManifest } from "../src/version";
 
 vi.mock("@actions/exec");
 vi.mock("@actions/core");
+vi.mock("@actions/io");
 
 const fixture: FlutterManifest = JSON.parse(
 	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),
@@ -369,6 +371,22 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 		expect(result.version).toBe("3.29.0");
 	});
 
+	it("skips tag lines whose hash is not a full hex hash", async () => {
+		mockTags(
+			[
+				"garbage\trefs/tags/3.30.0",
+				"4444444444444444444444444444444444444444\trefs/tags/3.29.0",
+			].join("\n"),
+		);
+
+		const result = await resolveGitVersion(
+			"https://github.com/user/flutter-fork.git",
+			{ type: "range", major: 3 },
+			"stable",
+		);
+		expect(result.version).toBe("3.29.0");
+	});
+
 	it("throws when no tag matches the spec", async () => {
 		mockTags("1111111111111111111111111111111111111111\trefs/tags/2.0.0");
 
@@ -535,6 +553,25 @@ describe("resolveGit (dispatch)", () => {
 			ref: "my-branch",
 		});
 	});
+
+	it("throws when the resolved hash is not valid hex", async () => {
+		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
+			if (options?.listeners?.stdout) {
+				options.listeners.stdout(
+					Buffer.from("not-a-hash\trefs/heads/my-branch\n"),
+				);
+			}
+			return 0;
+		});
+
+		await expect(
+			resolveGit(
+				"https://github.com/user/flutter-fork.git",
+				{ type: "ref", ref: "my-branch" },
+				"stable",
+			),
+		).rejects.toThrow("is not a valid commit hash");
+	});
 });
 
 describe("installFromGit", () => {
@@ -695,6 +732,19 @@ describe("installFromGit", () => {
 				"abc123def4567890abc123def4567890abc123de",
 			),
 		).rejects.toThrow("git clone failed");
+	});
+
+	it("removes a leftover sdkPath before cloning", async () => {
+		await installFromGit(
+			"https://github.com/flutter/flutter.git",
+			"stable",
+			"/opt/flutter",
+			FULL_HASH,
+		);
+		expect(rmRF).toHaveBeenCalledWith("/opt/flutter");
+		const rmOrder = vi.mocked(rmRF).mock.invocationCallOrder[0];
+		const cloneOrder = vi.mocked(exec).mock.invocationCallOrder[0];
+		expect(rmOrder).toBeLessThan(cloneOrder);
 	});
 
 	it("calls flutter precache after clone", async () => {

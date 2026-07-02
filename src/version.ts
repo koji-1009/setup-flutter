@@ -1,7 +1,7 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { info } from "@actions/core";
 import { HttpClient } from "@actions/http-client";
-import { major, minor, satisfies } from "semver";
+import { major, minor, satisfies, validRange } from "semver";
 import { getManifestUrl, getStorageBaseUrl } from "./utils";
 
 const MAX_FETCH_ATTEMPTS = 3;
@@ -53,6 +53,11 @@ export function parseVersionSpec(input: string): VersionSpec {
 	}
 
 	if (/[>=<^]/.test(trimmed)) {
+		if (validRange(trimmed) === null) {
+			throw new Error(
+				`Invalid version constraint '${trimmed}': use a semver range like '>=3.29.0 <4.0.0'`,
+			);
+		}
 		return { type: "constraint", range: trimmed };
 	}
 

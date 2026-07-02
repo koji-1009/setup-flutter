@@ -33,6 +33,14 @@ export function sdkCachePath(
 			`git-${gitConfig.commitHash.slice(0, 7)}-${arch}`,
 		);
 	}
+	// version comes from the release manifest (an external service); refuse
+	// anything that could escape the tool-cache directory.
+	const safeComponent = /^[A-Za-z0-9+._-]+$/;
+	if (!safeComponent.test(version) || !safeComponent.test(channel)) {
+		throw new Error(
+			`Unsafe path component in version '${version}' or channel '${channel}'`,
+		);
+	}
 	return join(toolCache, "flutter", `${version}-${channel}-${arch}`);
 }
 
@@ -50,10 +58,19 @@ export async function restoreSdkCache(
 	}
 	try {
 		const hit = await restoreCache([sdkPath], key);
-		if (hit !== undefined) {
-			info("SDK cache hit");
+		if (hit === undefined) {
+			return false;
 		}
-		return hit !== undefined;
+		// A truncated or poisoned cache entry restores "successfully" but has no
+		// flutter binary; treat it as a miss so the SDK gets reinstalled.
+		if (!isValidLocalSdk(sdkPath)) {
+			warning(
+				"SDK cache hit but the restored content is not a valid SDK; reinstalling",
+			);
+			return false;
+		}
+		info("SDK cache hit");
+		return true;
 	} catch (e) {
 		warning(`SDK cache restore failed: ${e}`);
 		return false;

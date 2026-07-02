@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { info, warning } from "@actions/core";
 import { exec } from "@actions/exec";
+import { rmRF } from "@actions/io";
 import { prerelease, rcompare, valid } from "semver";
 import {
 	type FlutterManifest,
@@ -132,6 +133,7 @@ async function lsRemoteTags(url: string): Promise<Map<string, string>> {
 	for (const line of await lsRemote(url, ["--tags"])) {
 		if (!line) continue;
 		const [hash, refPath] = line.split("\t");
+		if (!FULL_HASH_PATTERN.test(hash)) continue;
 		if (!refPath?.startsWith("refs/tags/")) continue;
 		const tag = refPath.slice("refs/tags/".length).replace(/\^\{\}$/, "");
 		byTag.set(tag, hash);
@@ -213,27 +215,41 @@ export async function resolveGit(
 	channel: string,
 	manifest?: FlutterManifest,
 ): Promise<GitResolution> {
+	let resolution: GitResolution;
 	if (spec.type === "range" || spec.type === "constraint") {
-		return resolveGitVersion(url, spec, channel, manifest);
+		resolution = await resolveGitVersion(url, spec, channel, manifest);
+	} else {
+		let ref: string;
+		switch (spec.type) {
+			case "channel":
+				ref = spec.channel;
+				break;
+			case "exact":
+				ref = spec.version;
+				break;
+			case "ref":
+				ref = spec.ref;
+				break;
+			case "any":
+				ref = channel;
+				break;
+		}
+		const result = await resolveGitRef(url, ref, manifest);
+		resolution = {
+			commitHash: result.commitHash,
+			version: result.version || ref,
+			ref,
+		};
 	}
 
-	let ref: string;
-	switch (spec.type) {
-		case "channel":
-			ref = spec.channel;
-			break;
-		case "exact":
-			ref = spec.version;
-			break;
-		case "ref":
-			ref = spec.ref;
-			break;
-		case "any":
-			ref = channel;
-			break;
+	// The hash flows into the cache key and a git checkout argument; refuse
+	// anything that is not hex (e.g. garbage from a misbehaving git server).
+	if (!HASH_PATTERN.test(resolution.commitHash)) {
+		throw new Error(
+			`Resolved commit hash '${resolution.commitHash}' for ${JSON.stringify(spec)} is not a valid commit hash`,
+		);
 	}
-	const result = await resolveGitRef(url, ref, manifest);
-	return { commitHash: result.commitHash, version: result.version || ref, ref };
+	return resolution;
 }
 
 async function revParseHead(sdkPath: string): Promise<string> {
@@ -264,6 +280,9 @@ export async function installFromGit(
 	};
 
 	info(`Cloning Flutter from ${url} (ref: ${ref})...`);
+	// A leftover partial directory (crashed install, interrupted cache
+	// restore) would make the clone fail; start from a clean path.
+	await rmRF(sdkPath);
 	if (FULL_HASH_PATTERN.test(commitHash) && ref === commitHash) {
 		// Commit hash as ref requires full clone + checkout
 		await execWithTimeout(
