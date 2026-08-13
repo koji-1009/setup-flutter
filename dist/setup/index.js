@@ -27340,7 +27340,7 @@ __export(main_exports, {
 });
 module.exports = __toCommonJS(main_exports);
 var import_node_crypto6 = require("node:crypto");
-var import_node_path6 = require("node:path");
+var import_node_path7 = require("node:path");
 
 // node_modules/@actions/core/lib/command.js
 var os = __toESM(require("os"), 1);
@@ -65206,11 +65206,25 @@ function setupPath(sdkPath) {
   exportVariable("FLUTTER_ROOT", sdkPath);
 }
 
+// src/problem-matcher.ts
+var import_node_path5 = require("node:path");
+var MATCHER_FILE = "flutter-analyzer.json";
+function registerProblemMatcher() {
+  const actionPath = process.env.GITHUB_ACTION_PATH;
+  if (!actionPath) {
+    warning(
+      "GITHUB_ACTION_PATH is not set; skipping problem matcher registration"
+    );
+    return;
+  }
+  info(`::add-matcher::${(0, import_node_path5.join)(actionPath, MATCHER_FILE)}`);
+}
+
 // src/version-file.ts
 var import_node_fs4 = require("node:fs");
-var import_node_path5 = require("node:path");
+var import_node_path6 = require("node:path");
 function readVersionFile(filePath, flavor) {
-  const name = (0, import_node_path5.basename)(filePath);
+  const name = (0, import_node_path6.basename)(filePath);
   if (name === "pubspec.yaml" || name === "pubspec.yml") {
     return readPubspec(filePath);
   }
@@ -65247,7 +65261,7 @@ function readPubspec(filePath) {
       }
     }
   }
-  throw new Error(`${(0, import_node_path5.basename)(filePath)} does not contain environment.flutter`);
+  throw new Error(`${(0, import_node_path6.basename)(filePath)} does not contain environment.flutter`);
 }
 function readFvmrc(filePath, flavor) {
   const content = (0, import_node_fs4.readFileSync)(filePath, "utf8");
@@ -65283,6 +65297,7 @@ async function run() {
     }
     const gitSourceUrl = getInput("git-source-url") || "https://github.com/flutter/flutter.git";
     const dryRun = getBooleanInput("dry-run");
+    const problemMatcher = getBooleanInput("problem-matcher");
     const platform2 = getPlatform();
     const arch2 = getArch(archInput || void 0);
     info(`Detected platform: ${platform2}/${arch2}`);
@@ -65392,7 +65407,7 @@ async function run() {
     setupPath(sdkDir);
     const pubCachePath = getPubCachePath();
     exportVariable("PUB_CACHE", pubCachePath);
-    addPath((0, import_node_path6.join)(pubCachePath, "bin"));
+    addPath((0, import_node_path7.join)(pubCachePath, "bin"));
     let pubHit = false;
     if (cachePub) {
       info("Restoring pub cache...");
@@ -65405,6 +65420,9 @@ async function run() {
         saveState("pubCacheKey", pubKey);
         saveState("pubCachePath", pubCachePath);
       }
+    }
+    if (problemMatcher) {
+      registerProblemMatcher();
     }
     setOutput("flutter-version", resolved.version);
     setOutput("dart-version", resolved.dartVersion);
