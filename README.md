@@ -104,6 +104,27 @@ SDK and pub caches are enabled by default. To disable:
 
 Pub caching requires `pubspec.lock` in the working directory.
 
+### Problem matcher
+
+A problem matcher for `flutter analyze` and `dart analyze` is registered by default, turning analyzer diagnostics in later steps into inline annotations on pull requests.
+
+```yaml
+- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- run: flutter analyze
+```
+
+Both output layouts are covered: `flutter analyze` prints `severity • message • file:line:column • code`, while `dart analyze` puts the location before the message. The `•` separator is replaced with `-` on Windows, which is also handled.
+
+To disable:
+
+```yaml
+- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+  with:
+    problem-matcher: false
+```
+
+The matcher is not registered when `dry-run` is enabled.
+
 ### Dry run
 
 Resolve version without installing. Useful for checking available versions in CI.
@@ -185,6 +206,8 @@ The intro bullets above are backed by a consistent design: every artifact this a
 ## Acknowledgments
 
 Inspired by [subosito/flutter-action](https://github.com/subosito/flutter-action) and [flutter-actions/setup-flutter](https://github.com/flutter-actions/setup-flutter).
+
+The problem matcher support is inspired by [dart-lang/setup-dart](https://github.com/dart-lang/setup-dart) (BSD-3-Clause), which added the same feature in v1.8.0. The matcher patterns in [flutter-analyzer.json](flutter-analyzer.json) were written for this action.
 
 ## License
 

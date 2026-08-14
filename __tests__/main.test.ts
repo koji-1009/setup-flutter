@@ -20,6 +20,7 @@ import {
 } from "../src/cache";
 import { installFromGit, isOriginalRepo, resolveGit } from "../src/git-source";
 import { installFromArchive, setupPath } from "../src/installer";
+import { registerProblemMatcher } from "../src/problem-matcher";
 import { getArch, getPlatform, getPubCachePath } from "../src/utils";
 import {
 	fetchManifest,
@@ -35,6 +36,7 @@ vi.mock("../src/version-file");
 vi.mock("../src/installer");
 vi.mock("../src/cache");
 vi.mock("../src/git-source");
+vi.mock("../src/problem-matcher");
 
 const { run } = await import("../src/main");
 
@@ -79,6 +81,7 @@ function setupDefaultMocks() {
 		"cache-sdk": true,
 		"cache-pub": true,
 		"dry-run": false,
+		"problem-matcher": true,
 	};
 
 	vi.mocked(getInput).mockImplementation((name: string) => inputs[name] || "");
@@ -120,6 +123,8 @@ function setupDefaultMocks() {
 		ref: "3.29.3",
 	});
 	vi.mocked(installFromGit).mockResolvedValue();
+
+	vi.mocked(registerProblemMatcher).mockImplementation(() => {});
 
 	return { inputs, boolInputs };
 }
@@ -206,6 +211,32 @@ describe("main run()", () => {
 
 		expect(pubCacheKey).not.toHaveBeenCalled();
 		expect(restorePubCache).not.toHaveBeenCalled();
+	});
+
+	it("registers the problem matcher by default", async () => {
+		setupDefaultMocks();
+
+		await run();
+
+		expect(registerProblemMatcher).toHaveBeenCalled();
+	});
+
+	it("does not register the problem matcher when problem-matcher is false", async () => {
+		const { boolInputs } = setupDefaultMocks();
+		boolInputs["problem-matcher"] = false;
+
+		await run();
+
+		expect(registerProblemMatcher).not.toHaveBeenCalled();
+	});
+
+	it("does not register the problem matcher on dry-run", async () => {
+		const { boolInputs } = setupDefaultMocks();
+		boolInputs["dry-run"] = true;
+
+		await run();
+
+		expect(registerProblemMatcher).not.toHaveBeenCalled();
 	});
 
 	it("does not install when cache hit", async () => {

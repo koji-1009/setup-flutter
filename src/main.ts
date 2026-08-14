@@ -21,6 +21,7 @@ import {
 } from "./cache";
 import { installFromGit, isOriginalRepo, resolveGit } from "./git-source";
 import { installFromArchive, setupPath } from "./installer";
+import { registerProblemMatcher } from "./problem-matcher";
 import { getArch, getPlatform, getPubCachePath } from "./utils";
 import {
 	fetchManifest,
@@ -48,6 +49,7 @@ export async function run(): Promise<void> {
 		const gitSourceUrl =
 			getInput("git-source-url") || "https://github.com/flutter/flutter.git";
 		const dryRun = getBooleanInput("dry-run");
+		const problemMatcher = getBooleanInput("problem-matcher");
 
 		const platform = getPlatform();
 		const arch = getArch(archInput || undefined);
@@ -190,6 +192,10 @@ export async function run(): Promise<void> {
 				saveState("pubCacheKey", pubKey);
 				saveState("pubCachePath", pubCachePath);
 			}
+		}
+
+		if (problemMatcher) {
+			registerProblemMatcher();
 		}
 
 		setOutput("flutter-version", resolved.version);

@@ -42,6 +42,10 @@ inputs:
     description: 'Only resolve version, do not install'
     required: false
     default: 'false'
+  problem-matcher:
+    description: 'Register a problem matcher for flutter analyze and dart analyze'
+    required: false
+    default: 'true'
 
 outputs:
   flutter-version:
