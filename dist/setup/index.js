@@ -1,3 +1,4 @@
+globalThis.__actionRoot = require("node:path").join(__dirname, "..", "..");
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -65210,14 +65211,14 @@ function setupPath(sdkPath) {
 var import_node_path5 = require("node:path");
 var MATCHER_FILE = "flutter-analyzer.json";
 function registerProblemMatcher() {
-  const actionPath = process.env.GITHUB_ACTION_PATH;
-  if (!actionPath) {
+  const actionRoot = globalThis.__actionRoot;
+  if (!actionRoot) {
     warning(
-      "GITHUB_ACTION_PATH is not set; skipping problem matcher registration"
+      "Could not resolve the action root; skipping problem matcher registration"
     );
     return;
   }
-  info(`::add-matcher::${(0, import_node_path5.join)(actionPath, MATCHER_FILE)}`);
+  info(`::add-matcher::${(0, import_node_path5.join)(actionRoot, MATCHER_FILE)}`);
 }
 
 // src/version-file.ts
