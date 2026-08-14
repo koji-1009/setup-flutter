@@ -8,16 +8,19 @@ const MATCHER_FILE = "flutter-analyzer.json";
  * Registers the analyzer problem matcher so that `flutter analyze` and
  * `dart analyze` diagnostics in later steps become inline annotations.
  *
- * The runner reads the definition file itself, so only the path is emitted.
+ * `GITHUB_ACTION_PATH` is only set for composite actions, so the action root is
+ * injected into the bundle by `build.mjs`, resolved from the bundle's own
+ * location. The runner reads the definition file itself, so only the path is
+ * emitted.
  */
 export function registerProblemMatcher(): void {
-	const actionPath = process.env.GITHUB_ACTION_PATH;
-	if (!actionPath) {
+	const actionRoot = (globalThis as { __actionRoot?: string }).__actionRoot;
+	if (!actionRoot) {
 		warning(
-			"GITHUB_ACTION_PATH is not set; skipping problem matcher registration",
+			"Could not resolve the action root; skipping problem matcher registration",
 		);
 		return;
 	}
 
-	info(`::add-matcher::${join(actionPath, MATCHER_FILE)}`);
+	info(`::add-matcher::${join(actionRoot, MATCHER_FILE)}`);
 }

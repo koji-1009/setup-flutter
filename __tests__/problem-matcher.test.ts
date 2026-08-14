@@ -164,28 +164,45 @@ describe("flutter-analyzer.json", () => {
 });
 
 describe("registerProblemMatcher()", () => {
+	const global = globalThis as { __actionRoot?: string };
+
 	beforeEach(() => {
 		vi.clearAllMocks();
-		delete process.env.GITHUB_ACTION_PATH;
+		delete global.__actionRoot;
 	});
 
-	it("emits add-matcher with the path under GITHUB_ACTION_PATH", () => {
-		process.env.GITHUB_ACTION_PATH = "/home/runner/work/_actions/setup-flutter";
+	it("emits add-matcher with the path under the injected action root", () => {
+		const root = "/home/runner/work/_actions/koji-1009/setup-flutter/v1";
+		global.__actionRoot = root;
 
 		registerProblemMatcher();
 
 		expect(info).toHaveBeenCalledWith(
-			`::add-matcher::${join("/home/runner/work/_actions/setup-flutter", "flutter-analyzer.json")}`,
+			`::add-matcher::${join(root, "flutter-analyzer.json")}`,
 		);
 		expect(warning).not.toHaveBeenCalled();
 	});
 
-	it("warns and skips when GITHUB_ACTION_PATH is not set", () => {
+	it("warns and skips when the action root was not injected", () => {
 		registerProblemMatcher();
 
 		expect(warning).toHaveBeenCalledWith(
-			expect.stringContaining("GITHUB_ACTION_PATH is not set"),
+			expect.stringContaining("Could not resolve the action root"),
 		);
 		expect(info).not.toHaveBeenCalled();
+	});
+
+	// The bundle sits at dist/setup/index.js, so the action root is two levels
+	// up. GITHUB_ACTION_PATH is not set for a JavaScript action, which is why
+	// the path has to come from the bundle's own location.
+	it("resolves the action root two levels above the bundle", () => {
+		const bundle = readFileSync(
+			join(__dirname, "../dist/setup/index.js"),
+			"utf8",
+		);
+
+		expect(bundle).toContain(
+			'globalThis.__actionRoot = require("node:path").join(__dirname, "..", "..");',
+		);
 	});
 });

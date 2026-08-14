@@ -15,11 +15,28 @@ const shared = {
 	format: "cjs",
 };
 
+// GITHUB_ACTION_PATH is only set for composite actions, so the bundle resolves
+// the action root from its own location. The number of levels comes from the
+// outfile, so it follows any change to the output layout.
+function actionRootBanner(outfile) {
+	const up = outfile
+		.split("/")
+		.slice(0, -1)
+		.map(() => '".."')
+		.join(", ");
+	return {
+		js: `globalThis.__actionRoot = require("node:path").join(__dirname, ${up});`,
+	};
+}
+
+const setupOutfile = "dist/setup/index.js";
+
 await Promise.all([
 	build({
 		...shared,
 		entryPoints: ["src/main.ts"],
-		outfile: "dist/setup/index.js",
+		outfile: setupOutfile,
+		banner: actionRootBanner(setupOutfile),
 	}),
 	build({
 		...shared,
