@@ -1,58 +1,170 @@
 {
 	"problemMatcher": [
 		{
-			"owner": "flutter-analyze-bullet",
+			"owner": "flutter-analyze-error-bullet",
+			"severity": "error",
 			"pattern": [
 				{
-					"regexp": "^\\s*(error|warning|info)\\s+•\\s+(.+?)\\s+•\\s+(.+):(\\d+):(\\d+)\\s+•\\s+(.+?)\\s*$",
-					"severity": 1,
-					"message": 2,
-					"file": 3,
-					"line": 4,
-					"column": 5,
-					"code": 6
-				}
-			]
-		},
-		{
-			"owner": "flutter-analyze-dash",
-			"pattern": [
-				{
-					"regexp": "^\\s*(error|warning|info)\\s+-\\s+(.+?)\\s+-\\s+(.+):(\\d+):(\\d+)\\s+-\\s+(.+?)\\s*$",
-					"severity": 1,
-					"message": 2,
-					"file": 3,
-					"line": 4,
-					"column": 5,
-					"code": 6
-				}
-			]
-		},
-		{
-			"owner": "dart-analyze-bullet",
-			"pattern": [
-				{
-					"regexp": "^\\s*(error|warning|info)\\s+•\\s+(.+):(\\d+):(\\d+)\\s+•\\s+(.+?)\\s+•\\s+(.+?)\\s*$",
-					"severity": 1,
+					"regexp": "^\\s*error\\s+•\\s+(.+?)\\s+•\\s+(.+):(\\d+):(\\d+)\\s+•\\s+(.+?)\\s*$",
+					"message": 1,
 					"file": 2,
 					"line": 3,
 					"column": 4,
-					"message": 5,
-					"code": 6
+					"code": 5
 				}
 			]
 		},
 		{
-			"owner": "dart-analyze-dash",
+			"owner": "flutter-analyze-error-dash",
+			"severity": "error",
 			"pattern": [
 				{
-					"regexp": "^\\s*(error|warning|info)\\s+-\\s+(.+):(\\d+):(\\d+)\\s+-\\s+(.+?)\\s+-\\s+(.+?)\\s*$",
-					"severity": 1,
+					"regexp": "^\\s*error\\s+-\\s+(.+?)\\s+-\\s+(.+):(\\d+):(\\d+)\\s+-\\s+(.+?)\\s*$",
+					"message": 1,
 					"file": 2,
 					"line": 3,
 					"column": 4,
-					"message": 5,
-					"code": 6
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "flutter-analyze-warning-bullet",
+			"severity": "warning",
+			"pattern": [
+				{
+					"regexp": "^\\s*warning\\s+•\\s+(.+?)\\s+•\\s+(.+):(\\d+):(\\d+)\\s+•\\s+(.+?)\\s*$",
+					"message": 1,
+					"file": 2,
+					"line": 3,
+					"column": 4,
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "flutter-analyze-warning-dash",
+			"severity": "warning",
+			"pattern": [
+				{
+					"regexp": "^\\s*warning\\s+-\\s+(.+?)\\s+-\\s+(.+):(\\d+):(\\d+)\\s+-\\s+(.+?)\\s*$",
+					"message": 1,
+					"file": 2,
+					"line": 3,
+					"column": 4,
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "flutter-analyze-info-bullet",
+			"severity": "notice",
+			"pattern": [
+				{
+					"regexp": "^\\s*info\\s+•\\s+(.+?)\\s+•\\s+(.+):(\\d+):(\\d+)\\s+•\\s+(.+?)\\s*$",
+					"message": 1,
+					"file": 2,
+					"line": 3,
+					"column": 4,
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "flutter-analyze-info-dash",
+			"severity": "notice",
+			"pattern": [
+				{
+					"regexp": "^\\s*info\\s+-\\s+(.+?)\\s+-\\s+(.+):(\\d+):(\\d+)\\s+-\\s+(.+?)\\s*$",
+					"message": 1,
+					"file": 2,
+					"line": 3,
+					"column": 4,
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "dart-analyze-error-bullet",
+			"severity": "error",
+			"pattern": [
+				{
+					"regexp": "^\\s*error\\s+•\\s+(.+):(\\d+):(\\d+)\\s+•\\s+(.+?)\\s+•\\s+(.+?)\\s*$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"message": 4,
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "dart-analyze-error-dash",
+			"severity": "error",
+			"pattern": [
+				{
+					"regexp": "^\\s*error\\s+-\\s+(.+):(\\d+):(\\d+)\\s+-\\s+(.+?)\\s+-\\s+(.+?)\\s*$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"message": 4,
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "dart-analyze-warning-bullet",
+			"severity": "warning",
+			"pattern": [
+				{
+					"regexp": "^\\s*warning\\s+•\\s+(.+):(\\d+):(\\d+)\\s+•\\s+(.+?)\\s+•\\s+(.+?)\\s*$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"message": 4,
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "dart-analyze-warning-dash",
+			"severity": "warning",
+			"pattern": [
+				{
+					"regexp": "^\\s*warning\\s+-\\s+(.+):(\\d+):(\\d+)\\s+-\\s+(.+?)\\s+-\\s+(.+?)\\s*$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"message": 4,
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "dart-analyze-info-bullet",
+			"severity": "notice",
+			"pattern": [
+				{
+					"regexp": "^\\s*info\\s+•\\s+(.+):(\\d+):(\\d+)\\s+•\\s+(.+?)\\s+•\\s+(.+?)\\s*$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"message": 4,
+					"code": 5
+				}
+			]
+		},
+		{
+			"owner": "dart-analyze-info-dash",
+			"severity": "notice",
+			"pattern": [
+				{
+					"regexp": "^\\s*info\\s+-\\s+(.+):(\\d+):(\\d+)\\s+-\\s+(.+?)\\s+-\\s+(.+?)\\s*$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"message": 4,
+					"code": 5
 				}
 			]
 		}
