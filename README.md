@@ -113,7 +113,13 @@ A problem matcher for `flutter analyze` and `dart analyze` is registered by defa
 - run: flutter analyze
 ```
 
-Both output layouts are covered: `flutter analyze` prints `severity • message • file:line:column • code`, while `dart analyze` puts the location before the message. The `•` separator is replaced with `-` on Windows, which is also handled.
+Both output layouts are covered: `flutter analyze` prints `severity • message • file:line:column • code`, while `dart analyze` puts the location before the message. Either can use `-` instead of `•` — `flutter analyze` does so on Windows, `dart analyze` whenever its output is not a terminal, which is always the case on a runner — and both forms are handled.
+
+All three analyzer levels are annotated. `error` and `warning` keep their names, and `info`, which is what lints report, is annotated as `notice` — the name GitHub uses for the same level.
+
+For an annotation to reach a file, the path the analyzer prints has to resolve from the repository root: the runner joins a relative path with the workspace and drops it when no such file exists. That means running `analyze` at the root without a path argument. `dart analyze packages/foo` prints paths relative to `packages/foo`, and a step with `working-directory` set behaves the same way; the diagnostics still appear in the log, but with no file to attach to.
+
+GitHub caps annotations at 10 per severity per step and 50 per job ([limitations](https://github.com/actions/toolkit/blob/main/docs/problem-matchers.md#limitations)), so a lint-heavy run is truncated on the Files changed tab while the log keeps the full output.
 
 To disable:
 
