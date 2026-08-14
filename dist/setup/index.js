@@ -65309,6 +65309,11 @@ async function run() {
       );
     }
     const gitSourceUrl = getInput("git-source-url") || "https://github.com/flutter/flutter.git";
+    if (gitSourceUrl.startsWith("-")) {
+      throw new Error(
+        `Invalid git-source-url: '${gitSourceUrl}' starts with '-' and would be read as a git option`
+      );
+    }
     const dryRun = getBooleanInput("dry-run");
     const problemMatcher = getBooleanInput("problem-matcher");
     const platform2 = getPlatform();

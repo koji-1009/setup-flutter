@@ -48,6 +48,13 @@ export async function run(): Promise<void> {
 		}
 		const gitSourceUrl =
 			getInput("git-source-url") || "https://github.com/flutter/flutter.git";
+		// The url is passed to git as a positional argument, where a leading '-'
+		// would be read as an option instead of a repository.
+		if (gitSourceUrl.startsWith("-")) {
+			throw new Error(
+				`Invalid git-source-url: '${gitSourceUrl}' starts with '-' and would be read as a git option`,
+			);
+		}
 		const dryRun = getBooleanInput("dry-run");
 		const problemMatcher = getBooleanInput("problem-matcher");
 
