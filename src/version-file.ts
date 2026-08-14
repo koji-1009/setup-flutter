@@ -22,7 +22,13 @@ export function readPubspec(filePath: string): string {
 			continue;
 		}
 		if (inEnvironment) {
-			if (/^\S/.test(line) && line.trim() !== "") {
+			// Comments and blank lines carry no indentation meaning in YAML, so they
+			// do not end the block however they are placed.
+			const trimmed = line.trim();
+			if (trimmed === "" || trimmed.startsWith("#")) {
+				continue;
+			}
+			if (/^\S/.test(line)) {
 				break;
 			}
 			const m = line.match(/^\s+flutter\s*:\s*(.+)/);

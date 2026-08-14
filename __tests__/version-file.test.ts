@@ -53,6 +53,13 @@ describe("readPubspec", () => {
 		);
 	});
 
+	// A comment is not indented content, so it does not close the block.
+	it("reads constraint from pubspec with a comment at column zero", () => {
+		expect(
+			readPubspec(join(fixturesDir, "pubspec-column-zero-comment.yaml")),
+		).toBe(">=3.29.0 <4.0.0");
+	});
+
 	it("returns empty string for empty quoted flutter value", () => {
 		expect(readPubspec(join(fixturesDir, "pubspec-empty-quoted.yaml"))).toBe(
 			"",
