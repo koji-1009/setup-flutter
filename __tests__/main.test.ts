@@ -285,6 +285,21 @@ describe("main run()", () => {
 		expect(installFromArchive).not.toHaveBeenCalled();
 	});
 
+	// git reads a leading '-' as an option rather than a repository.
+	it("calls setFailed for an option-like git-source-url", async () => {
+		const { inputs } = setupDefaultMocks();
+		inputs["git-source-url"] = "--upload-pack=touch /tmp/pwn";
+
+		await run();
+
+		expect(setFailed).toHaveBeenCalledWith(
+			expect.stringContaining("Invalid git-source-url"),
+		);
+		expect(fetchManifest).not.toHaveBeenCalled();
+		expect(resolveGit).not.toHaveBeenCalled();
+		expect(installFromGit).not.toHaveBeenCalled();
+	});
+
 	it("uses git mode with ref spec", async () => {
 		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
