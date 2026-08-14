@@ -65252,7 +65252,11 @@ function readPubspec(filePath) {
       continue;
     }
     if (inEnvironment) {
-      if (/^\S/.test(line) && line.trim() !== "") {
+      const trimmed = line.trim();
+      if (trimmed === "" || trimmed.startsWith("#")) {
+        continue;
+      }
+      if (/^\S/.test(line)) {
         break;
       }
       const m = line.match(/^\s+flutter\s*:\s*(.+)/);
