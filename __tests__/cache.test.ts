@@ -111,6 +111,22 @@ describe("sdkCachePath", () => {
 			process.env.RUNNER_TOOL_CACHE = original;
 		}
 	});
+
+	// On a runner RUNNER_TOOL_CACHE is always set, so the fallback is only
+	// reached when this test clears it.
+	it("falls back to the default tool cache without RUNNER_TOOL_CACHE", () => {
+		const original = process.env.RUNNER_TOOL_CACHE;
+		delete process.env.RUNNER_TOOL_CACHE;
+		try {
+			expect(sdkCachePath("3.29.0", "stable", "x64")).toContain(
+				"/opt/hostedtoolcache",
+			);
+		} finally {
+			if (original !== undefined) {
+				process.env.RUNNER_TOOL_CACHE = original;
+			}
+		}
+	});
 });
 
 describe("isValidLocalSdk", () => {

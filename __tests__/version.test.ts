@@ -667,6 +667,18 @@ describe("fetchManifest", () => {
 		expect(getJson).toHaveBeenCalledTimes(3);
 	});
 
+	it("wraps a non-Error rejection", async () => {
+		const getJson = vi.fn().mockRejectedValue("socket hang up");
+		HttpClient.mockImplementation(
+			class {
+				getJson = getJson;
+			},
+		);
+
+		await expect(fetchManifest("linux")).rejects.toThrow("socket hang up");
+		expect(getJson).toHaveBeenCalledTimes(3);
+	});
+
 	it("does not retry on HTTP 403", async () => {
 		const getJson = vi
 			.fn()
