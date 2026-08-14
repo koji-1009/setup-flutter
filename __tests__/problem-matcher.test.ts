@@ -1,10 +1,19 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { info, warning } from "@actions/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerProblemMatcher } from "../src/problem-matcher";
 
 vi.mock("@actions/core");
+
+// Only existsSync is faked, so the definition below is read from disk and the
+// lookup walks the real tree unless a test says otherwise.
+vi.mock("node:fs", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("node:fs")>();
+	return { ...actual, existsSync: vi.fn() };
+});
+
+const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
 
 type MatcherPattern = {
 	regexp: string;
@@ -164,45 +173,31 @@ describe("flutter-analyzer.json", () => {
 });
 
 describe("registerProblemMatcher()", () => {
-	const global = globalThis as { __actionRoot?: string };
-
 	beforeEach(() => {
 		vi.clearAllMocks();
-		delete global.__actionRoot;
+		vi.mocked(existsSync).mockImplementation(realFs.existsSync);
 	});
 
-	it("emits add-matcher with the path under the injected action root", () => {
-		const root = "/home/runner/work/_actions/koji-1009/setup-flutter/v1";
-		global.__actionRoot = root;
-
+	// GITHUB_ACTION_PATH is not set for a JavaScript action, so the definition is
+	// found by walking up from the module: one level from src here, two from the
+	// bundle in dist/setup on a runner.
+	it("emits add-matcher with the definition found above the module", () => {
 		registerProblemMatcher();
 
 		expect(info).toHaveBeenCalledWith(
-			`::add-matcher::${join(root, "flutter-analyzer.json")}`,
+			`::add-matcher::${join(__dirname, "..", "flutter-analyzer.json")}`,
 		);
 		expect(warning).not.toHaveBeenCalled();
 	});
 
-	it("warns and skips when the action root was not injected", () => {
+	it("warns and skips when the definition is nowhere above the module", () => {
+		vi.mocked(existsSync).mockReturnValue(false);
+
 		registerProblemMatcher();
 
 		expect(warning).toHaveBeenCalledWith(
-			expect.stringContaining("Could not resolve the action root"),
+			expect.stringContaining("Could not locate flutter-analyzer.json"),
 		);
 		expect(info).not.toHaveBeenCalled();
-	});
-
-	// The bundle sits at dist/setup/index.js, so the action root is two levels
-	// up. GITHUB_ACTION_PATH is not set for a JavaScript action, which is why
-	// the path has to come from the bundle's own location.
-	it("resolves the action root two levels above the bundle", () => {
-		const bundle = readFileSync(
-			join(__dirname, "../dist/setup/index.js"),
-			"utf8",
-		);
-
-		expect(bundle).toContain(
-			'globalThis.__actionRoot = require("node:path").join(__dirname, "..", "..");',
-		);
 	});
 });

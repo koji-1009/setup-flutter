@@ -1,4 +1,3 @@
-globalThis.__actionRoot = require("node:path").join(__dirname, "..", "..");
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -65208,21 +65207,30 @@ function setupPath(sdkPath) {
 }
 
 // src/problem-matcher.ts
+var import_node_fs4 = require("node:fs");
 var import_node_path5 = require("node:path");
 var MATCHER_FILE = "flutter-analyzer.json";
 function registerProblemMatcher() {
-  const actionRoot = globalThis.__actionRoot;
-  if (!actionRoot) {
-    warning(
-      "Could not resolve the action root; skipping problem matcher registration"
-    );
-    return;
+  let dir = __dirname;
+  for (; ; ) {
+    const candidate = (0, import_node_path5.join)(dir, MATCHER_FILE);
+    if ((0, import_node_fs4.existsSync)(candidate)) {
+      info(`::add-matcher::${candidate}`);
+      return;
+    }
+    const parent = (0, import_node_path5.dirname)(dir);
+    if (parent === dir) {
+      warning(
+        `Could not locate ${MATCHER_FILE}; skipping problem matcher registration`
+      );
+      return;
+    }
+    dir = parent;
   }
-  info(`::add-matcher::${(0, import_node_path5.join)(actionRoot, MATCHER_FILE)}`);
 }
 
 // src/version-file.ts
-var import_node_fs4 = require("node:fs");
+var import_node_fs5 = require("node:fs");
 var import_node_path6 = require("node:path");
 function readVersionFile(filePath, flavor) {
   const name = (0, import_node_path6.basename)(filePath);
@@ -65235,7 +65243,7 @@ function readVersionFile(filePath, flavor) {
   throw new Error(`Unsupported version file: ${name}`);
 }
 function readPubspec(filePath) {
-  const content = (0, import_node_fs4.readFileSync)(filePath, "utf8");
+  const content = (0, import_node_fs5.readFileSync)(filePath, "utf8");
   const lines = content.split("\n");
   let inEnvironment = false;
   for (const line of lines) {
@@ -65265,7 +65273,7 @@ function readPubspec(filePath) {
   throw new Error(`${(0, import_node_path6.basename)(filePath)} does not contain environment.flutter`);
 }
 function readFvmrc(filePath, flavor) {
-  const content = (0, import_node_fs4.readFileSync)(filePath, "utf8");
+  const content = (0, import_node_fs5.readFileSync)(filePath, "utf8");
   const json = JSON.parse(content);
   if (flavor) {
     const flavorVersion = json.flavors?.[flavor];
