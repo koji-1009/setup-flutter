@@ -17,8 +17,8 @@ See [action.yml](action.yml) for the full list of inputs and outputs.
 
 ```yaml
 steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-  - uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   - run: flutter --version
 ```
 
@@ -29,7 +29,7 @@ Zero configuration installs the latest stable Flutter SDK with caching enabled.
 ### Specify version
 
 ```yaml
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     flutter-version: '3.41.0'
 ```
@@ -39,7 +39,7 @@ Supports exact versions, ranges (`3.x`, `3.41.x`), and constraints (`>=3.41.0 <4
 ### Channel
 
 ```yaml
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     channel: beta
 ```
@@ -48,12 +48,12 @@ Supports exact versions, ranges (`3.x`, `3.41.x`), and constraints (`>=3.41.0 <4
 
 ```yaml
 # From pubspec.yaml sdk constraint
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     flutter-version-file: pubspec.yaml
 
 # From .fvmrc
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     flutter-version-file: .fvmrc
 ```
@@ -61,7 +61,7 @@ Supports exact versions, ranges (`3.x`, `3.41.x`), and constraints (`>=3.41.0 <4
 ### FVM flavors
 
 ```yaml
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     flutter-version-file: .fvmrc
     fvm-flavor: production
@@ -70,7 +70,7 @@ Supports exact versions, ranges (`3.x`, `3.41.x`), and constraints (`>=3.41.0 <4
 ### Architecture
 
 ```yaml
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     architecture: arm64
 ```
@@ -84,8 +84,8 @@ strategy:
   matrix:
     channel: [stable, beta]
 steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-  - uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
     with:
       channel: ${{ matrix.channel }}
   - run: flutter test
@@ -96,7 +96,7 @@ steps:
 SDK and pub caches are enabled by default. To disable:
 
 ```yaml
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     cache-sdk: false
     cache-pub: false
@@ -109,7 +109,7 @@ Pub caching requires `pubspec.lock` in the working directory.
 A problem matcher for `flutter analyze` and `dart analyze` is registered by default, turning analyzer diagnostics in later steps into inline annotations on pull requests.
 
 ```yaml
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
 - run: flutter analyze
 ```
 
@@ -124,7 +124,7 @@ GitHub caps annotations at 10 per severity per step and 50 per job ([limitations
 To disable:
 
 ```yaml
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     problem-matcher: false
 ```
@@ -136,7 +136,7 @@ The matcher is not registered when `dry-run` is enabled.
 Resolve version without installing. Useful for checking available versions in CI.
 
 ```yaml
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   id: flutter
   with:
     flutter-version: '3.x'
@@ -150,19 +150,19 @@ Install from a git repository instead of release archives:
 
 ```yaml
 # master branch
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     git-source: git
     channel: master
 
 # Specific version, resolved to the matching git tag
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     git-source: git
     flutter-version: '3.x'
 
 # Custom fork
-- uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+- uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     git-source: git
     git-source-url: https://github.com/user/flutter-fork.git
@@ -179,7 +179,7 @@ Version ranges and constraints (e.g. `3.x`, `>=3.10.0 <3.20.0`) are resolved to 
 env:
   FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
 steps:
-  - uses: koji-1009/setup-flutter@f3f6da93828bdc04c16df16e88984a1bd8f3ce81 # v1.1.3
+  - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
 ```
 
 ## Outputs
