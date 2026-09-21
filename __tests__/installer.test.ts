@@ -73,7 +73,6 @@ function mockHttpGetSequence(
 }
 
 beforeEach(() => {
-	vi.clearAllMocks();
 	mockHttpGetWith(200, String(testBuffer.length));
 	vi.mocked(extractTar).mockResolvedValue("/opt");
 	vi.mocked(extractZip).mockResolvedValue("/opt");

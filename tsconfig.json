@@ -6,5 +6,5 @@
 		"skipLibCheck": true,
 		"isolatedModules": true
 	},
-	"include": ["src/**/*"]
+	"include": ["src/**/*", "__tests__/**/*", "vitest.config.mts"]
 }

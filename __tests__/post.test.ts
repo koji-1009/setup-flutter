@@ -1,5 +1,5 @@
 import { getState, info, warning } from "@actions/core";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getPubCachePaths, savePubCache, saveSdkCache } from "../src/cache";
 
 vi.mock("@actions/core");
@@ -16,10 +16,6 @@ function setupState(state: Record<string, string>) {
 }
 
 describe("post run()", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("skips save when installSuccess is false", async () => {
 		setupState({ installSuccess: "false" });
 		await run();

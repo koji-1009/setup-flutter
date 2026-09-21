@@ -9,7 +9,7 @@ import {
 	setOutput,
 	warning,
 } from "@actions/core";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	getPubCachePaths,
 	pubCacheKey,
@@ -130,10 +130,6 @@ function setupDefaultMocks() {
 }
 
 describe("main run()", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("installs latest stable with zero config", async () => {
 		setupDefaultMocks();
 		await run();

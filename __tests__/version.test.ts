@@ -1,14 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-	afterEach,
-	beforeEach,
-	describe,
-	expect,
-	it,
-	type Mock,
-	vi,
-} from "vitest";
+import { afterEach, describe, expect, it, type Mock, vi } from "vitest";
 import {
 	type FlutterManifest,
 	fetchManifest,
@@ -572,16 +564,12 @@ describe("resolveFromManifest (macos arm64)", () => {
 	});
 });
 
-const { HttpClient } = (await import("@actions/http-client")) as {
-	HttpClient: Mock;
+const { HttpClient } = (await import("@actions/http-client")) as unknown as {
+	HttpClient: Mock<new () => unknown>;
 };
 
 describe("fetchManifest", () => {
 	const originalEnv = process.env.FLUTTER_STORAGE_BASE_URL;
-
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
 
 	afterEach(() => {
 		if (originalEnv === undefined) {

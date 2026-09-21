@@ -289,7 +289,6 @@ describe("flutter-analyzer.json", () => {
 
 describe("registerProblemMatcher()", () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
 		vi.mocked(existsSync).mockImplementation(realFs.existsSync);
 	});
 
