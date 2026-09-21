@@ -117,13 +117,15 @@ describe("sdkCachePath", () => {
 });
 
 describe("isValidLocalSdk", () => {
-	it("returns true when flutter binary exists", () => {
-		vi.mocked(existsSync).mockReturnValue(true);
+	it("returns true when bin/flutter exists under the SDK path", () => {
+		vi.mocked(existsSync).mockImplementation(
+			(p) => p === join("/opt/flutter", "bin", "flutter"),
+		);
 		expect(isValidLocalSdk("/opt/flutter")).toBe(true);
 	});
 
-	it("returns false when flutter binary does not exist", () => {
-		vi.mocked(existsSync).mockReturnValue(false);
+	it("returns false when only the SDK directory exists", () => {
+		vi.mocked(existsSync).mockImplementation((p) => p === "/opt/flutter");
 		expect(isValidLocalSdk("/opt/flutter")).toBe(false);
 	});
 });
@@ -141,6 +143,10 @@ describe("restoreSdkCache", () => {
 			"flutter-sdk-linux-stable-3.29.0-x64",
 		);
 		expect(result).toBe(true);
+		expect(restoreCache).toHaveBeenCalledWith(
+			["/opt/flutter"],
+			"flutter-sdk-linux-stable-3.29.0-x64",
+		);
 	});
 
 	it("returns false when the restored content is not a valid SDK", async () => {
@@ -259,6 +265,7 @@ describe("restorePubCache", () => {
 		vi.mocked(restoreCache).mockResolvedValue("key");
 		const result = await restorePubCache(["/pub-cache"], "key");
 		expect(result).toBe(true);
+		expect(restoreCache).toHaveBeenCalledWith(["/pub-cache"], "key");
 	});
 
 	it("returns false on cache miss", async () => {

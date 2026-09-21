@@ -1,5 +1,6 @@
 import {
 	addPath,
+	exportVariable,
 	getBooleanInput,
 	getInput,
 	saveState,
@@ -136,9 +137,60 @@ describe("main run()", () => {
 		expect(setupPath).toHaveBeenCalledWith(
 			"/opt/hostedtoolcache/flutter/3.29.3-stable-x64",
 		);
+		expect(exportVariable).toHaveBeenCalledWith(
+			"PUB_CACHE",
+			"/home/runner/.pub-cache",
+		);
 		expect(addPath).toHaveBeenCalledWith("/home/runner/.pub-cache/bin");
 		expect(setOutput).toHaveBeenCalledWith("flutter-version", "3.29.3");
-		expect(saveState).toHaveBeenCalledWith("installSuccess", "true");
+		expect(setOutput).toHaveBeenCalledWith("dart-version", "3.7.0");
+		expect(setOutput).toHaveBeenCalledWith("channel", "stable");
+		expect(setOutput).toHaveBeenCalledWith("cache-sdk-hit", "false");
+		expect(setOutput).toHaveBeenCalledWith("cache-pub-hit", "false");
+		expect(setOutput).toHaveBeenCalledWith("architecture", "x64");
+	});
+
+	// post.ts reads these names back, so they are the contract between the two.
+	it("saves the state the post step reads", async () => {
+		await run();
+
+		expect(vi.mocked(saveState).mock.calls).toEqual(
+			expect.arrayContaining([
+				["sdkCacheKey", "flutter-sdk-linux-stable-3.29.3-x64"],
+				["sdkCachePath", "/opt/hostedtoolcache/flutter/3.29.3-stable-x64"],
+				["pubCacheKey", "flutter-pub-abc123"],
+				["pubCachePath", "/home/runner/.pub-cache"],
+				["installSuccess", "true"],
+				["sdkCacheMiss", "true"],
+				["pubCacheMiss", "true"],
+				["cacheSdk", "true"],
+				["cachePub", "true"],
+			]),
+		);
+	});
+
+	it("passes the architecture input to getArch", async () => {
+		inputs.architecture = "arm64";
+
+		await run();
+
+		expect(getArch).toHaveBeenCalledWith("arm64");
+	});
+
+	it("detects the architecture when the input is empty", async () => {
+		await run();
+
+		expect(getArch).toHaveBeenCalledWith(undefined);
+	});
+
+	it("passes fvm-flavor to readVersionFile", async () => {
+		inputs["flutter-version-file"] = ".fvmrc";
+		inputs["fvm-flavor"] = "staging";
+		vi.mocked(readVersionFile).mockReturnValue("3.29.3");
+
+		await run();
+
+		expect(readVersionFile).toHaveBeenCalledWith(".fvmrc", "staging");
 	});
 
 	it("resolves exact version", async () => {
@@ -230,6 +282,8 @@ describe("main run()", () => {
 		await run();
 
 		expect(installFromArchive).not.toHaveBeenCalled();
+		expect(setOutput).toHaveBeenCalledWith("cache-sdk-hit", "true");
+		expect(saveState).toHaveBeenCalledWith("sdkCacheMiss", "false");
 	});
 
 	it("handles dry-run: sets outputs but does not install", async () => {
@@ -240,6 +294,7 @@ describe("main run()", () => {
 		expect(setOutput).toHaveBeenCalledWith("flutter-version", "3.29.3");
 		expect(setOutput).toHaveBeenCalledWith("dart-version", "3.7.0");
 		expect(setOutput).toHaveBeenCalledWith("channel", "stable");
+		expect(setOutput).toHaveBeenCalledWith("architecture", "x64");
 		expect(installFromArchive).not.toHaveBeenCalled();
 		expect(restoreSdkCache).not.toHaveBeenCalled();
 	});
@@ -387,6 +442,29 @@ describe("main run()", () => {
 
 		expect(resolveGit).toHaveBeenCalled();
 		expect(installFromGit).not.toHaveBeenCalled();
+	});
+
+	// The same commit from a fork must not share a cache entry with the original
+	// repository, so the key carries a hash of the url.
+	it("uses git mode keys the SDK cache by commit and repository url", async () => {
+		inputs["git-source"] = "git";
+
+		await run();
+
+		expect(sdkCachePath).toHaveBeenCalledWith("3.29.3", "stable", "x64", {
+			commitHash: "hash1",
+		});
+		expect(sdkCacheKey).toHaveBeenCalledWith(
+			"linux",
+			"stable",
+			"3.29.3",
+			"x64",
+			{
+				commitHash: "hash1",
+				// sha256("https://github.com/flutter/flutter.git"), first 8 hex digits
+				urlHash: "969f1d83",
+			},
+		);
 	});
 
 	it("reads version file when flutter-version is empty", async () => {

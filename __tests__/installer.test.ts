@@ -1,12 +1,25 @@
 import { createHash } from "node:crypto";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { Readable } from "node:stream";
 import { addPath, exportVariable, info, warning } from "@actions/core";
 import { HttpClient } from "@actions/http-client";
 import { mkdirP, mv, rmRF } from "@actions/io";
 import { extractTar, extractZip } from "@actions/tool-cache";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installFromArchive, setupPath } from "../src/installer";
 import type { ResolvedVersion } from "../src/version";
+
+// The download is written for real under os.tmpdir(), but rmRF is mocked, so
+// nothing would delete it. Point tmpdir at a directory each test owns instead.
+const download = vi.hoisted(() => ({ dir: "" }));
+vi.mock("node:os", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("node:os")>();
+	return { ...actual, tmpdir: vi.fn(() => download.dir) };
+});
+
+const { tmpdir: realTmpdir } =
+	await vi.importActual<typeof import("node:os")>("node:os");
 
 vi.mock("@actions/http-client");
 vi.mock("@actions/tool-cache");
@@ -102,12 +115,17 @@ function retryLogCount() {
 }
 
 beforeEach(() => {
+	download.dir = mkdtempSync(join(realTmpdir(), "setup-flutter-test-"));
 	mockHttpGetWith(200, String(testBuffer.length));
 	vi.mocked(extractTar).mockResolvedValue("/opt");
 	vi.mocked(extractZip).mockResolvedValue("/opt");
 	vi.mocked(mkdirP).mockResolvedValue();
 	vi.mocked(mv).mockResolvedValue();
 	vi.mocked(rmRF).mockResolvedValue();
+});
+
+afterEach(() => {
+	rmSync(download.dir, { recursive: true, force: true });
 });
 
 describe("installFromArchive", () => {
@@ -142,6 +160,23 @@ describe("installFromArchive", () => {
 	it("succeeds when SHA-256 matches", async () => {
 		await installFromArchive(resolved, "/opt/flutter", "linux");
 		expect(mv).toHaveBeenCalled();
+	});
+
+	it("creates the extract parent and removes the download afterwards", async () => {
+		await installFromArchive(resolved, "/opt/flutter", "linux");
+		const archive = vi.mocked(extractTar).mock.calls[0][0];
+		expect(mkdirP).toHaveBeenCalledWith("/opt");
+		expect(rmRF).toHaveBeenCalledWith(archive);
+	});
+
+	it("removes the download when extraction fails", async () => {
+		vi.mocked(extractTar).mockRejectedValue(new Error("corrupt archive"));
+		await expect(
+			installFromArchive(resolved, "/opt/flutter", "linux"),
+		).rejects.toThrow("corrupt archive");
+		const archive = vi.mocked(extractTar).mock.calls[0][0];
+		expect(rmRF).toHaveBeenCalledWith(archive);
+		expect(mv).not.toHaveBeenCalled();
 	});
 
 	it("throws and cleans up when SHA-256 mismatches", async () => {
@@ -276,24 +311,18 @@ describe("installFromArchive", () => {
 });
 
 describe("download retry", () => {
-	it("retries on HTTP 500 and succeeds on next attempt", async () => {
-		mockHttpGetSequence(
-			{ statusCode: 500 },
-			{ statusCode: 200, contentLength: String(testBuffer.length) },
-		);
-		await installFromArchive(resolved, "/opt/flutter", "linux");
-		expect(mv).toHaveBeenCalled();
-		expect(retryLogCount()).toBe(1);
-	});
-
-	it("retries on HTTP 429 and succeeds on next attempt", async () => {
-		mockHttpGetSequence(
-			{ statusCode: 429 },
-			{ statusCode: 200, contentLength: String(testBuffer.length) },
-		);
-		await installFromArchive(resolved, "/opt/flutter", "linux");
-		expect(mv).toHaveBeenCalled();
-	});
+	it.each([500, 429, 408])(
+		"retries on HTTP %i and succeeds on next attempt",
+		async (statusCode) => {
+			mockHttpGetSequence(
+				{ statusCode },
+				{ statusCode: 200, contentLength: String(testBuffer.length) },
+			);
+			await installFromArchive(resolved, "/opt/flutter", "linux");
+			expect(mv).toHaveBeenCalled();
+			expect(retryLogCount()).toBe(1);
+		},
+	);
 
 	it("does not retry on HTTP 404", async () => {
 		mockHttpGetWith(404);
