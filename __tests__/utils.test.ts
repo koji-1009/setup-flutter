@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	getArch,
 	getManifestUrl,
@@ -8,11 +8,6 @@ import {
 	getPubCachePath,
 	getStorageBaseUrl,
 } from "../src/utils";
-
-afterEach(() => {
-	vi.restoreAllMocks();
-	vi.unstubAllEnvs();
-});
 
 function stubPlatform(platform: string) {
 	vi.spyOn(process, "platform", "get").mockReturnValue(

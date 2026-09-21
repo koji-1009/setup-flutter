@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { restoreCache, saveCache } from "@actions/cache";
 import { info, warning } from "@actions/core";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	getPubCachePaths,
 	isValidLocalSdk,
@@ -24,10 +24,6 @@ vi.mock("node:fs", async (importOriginal) => {
 		existsSync: vi.fn(actual.existsSync),
 		readdirSync: vi.fn(actual.readdirSync),
 	};
-});
-
-afterEach(() => {
-	vi.unstubAllEnvs();
 });
 
 const fixturesDir = join(__dirname, "fixtures");

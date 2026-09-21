@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { HttpClient } from "@actions/http-client";
-import { afterEach, describe, expect, it, type Mock, vi } from "vitest";
+import { describe, expect, it, type Mock, vi } from "vitest";
 import {
 	type FlutterManifest,
 	fetchManifest,
@@ -17,10 +17,6 @@ vi.mock("@actions/core");
 vi.mock("node:timers/promises", () => ({
 	setTimeout: vi.fn(() => Promise.resolve()),
 }));
-
-afterEach(() => {
-	vi.unstubAllEnvs();
-});
 
 const linuxFixture: FlutterManifest = JSON.parse(
 	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),

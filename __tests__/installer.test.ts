@@ -4,7 +4,7 @@ import { addPath, exportVariable, info, warning } from "@actions/core";
 import { HttpClient } from "@actions/http-client";
 import { mkdirP, mv, rmRF } from "@actions/io";
 import { extractTar, extractZip } from "@actions/tool-cache";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { installFromArchive, setupPath } from "../src/installer";
 import type { ResolvedVersion } from "../src/version";
 
@@ -108,10 +108,6 @@ beforeEach(() => {
 	vi.mocked(mkdirP).mockResolvedValue();
 	vi.mocked(mv).mockResolvedValue();
 	vi.mocked(rmRF).mockResolvedValue();
-});
-
-afterEach(() => {
-	vi.restoreAllMocks();
 });
 
 describe("installFromArchive", () => {
