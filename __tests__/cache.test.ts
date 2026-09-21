@@ -69,6 +69,10 @@ describe("sdkCacheKey", () => {
 });
 
 describe("sdkCachePath", () => {
+	afterEach(() => {
+		vi.unstubAllEnvs();
+	});
+
 	it("returns release cache path", () => {
 		const result = sdkCachePath("3.29.0", "stable", "x64");
 		expect(result).toContain("flutter");
@@ -101,31 +105,18 @@ describe("sdkCachePath", () => {
 	});
 
 	it("uses RUNNER_TOOL_CACHE env var", () => {
-		const original = process.env.RUNNER_TOOL_CACHE;
-		process.env.RUNNER_TOOL_CACHE = "/custom/cache";
+		vi.stubEnv("RUNNER_TOOL_CACHE", "/custom/cache");
 		const result = sdkCachePath("3.29.0", "stable", "x64");
 		expect(result).toContain("/custom/cache");
-		if (original === undefined) {
-			delete process.env.RUNNER_TOOL_CACHE;
-		} else {
-			process.env.RUNNER_TOOL_CACHE = original;
-		}
 	});
 
 	// On a runner RUNNER_TOOL_CACHE is always set, so the fallback is only
 	// reached when this test clears it.
 	it("falls back to the default tool cache without RUNNER_TOOL_CACHE", () => {
-		const original = process.env.RUNNER_TOOL_CACHE;
-		delete process.env.RUNNER_TOOL_CACHE;
-		try {
-			expect(sdkCachePath("3.29.0", "stable", "x64")).toContain(
-				"/opt/hostedtoolcache",
-			);
-		} finally {
-			if (original !== undefined) {
-				process.env.RUNNER_TOOL_CACHE = original;
-			}
-		}
+		vi.stubEnv("RUNNER_TOOL_CACHE", undefined);
+		expect(sdkCachePath("3.29.0", "stable", "x64")).toContain(
+			"/opt/hostedtoolcache",
+		);
 	});
 });
 

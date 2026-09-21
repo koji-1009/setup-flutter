@@ -4,7 +4,8 @@ import { addPath, exportVariable, info, warning } from "@actions/core";
 import { HttpClient } from "@actions/http-client";
 import { mkdirP, mv, rmRF } from "@actions/io";
 import { extractTar, extractZip } from "@actions/tool-cache";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { installFromArchive, setupPath } from "../src/installer";
 import type { ResolvedVersion } from "../src/version";
 
 vi.mock("@actions/http-client");
@@ -57,6 +58,8 @@ function mockHttpGetSequence(
 	let idx = 0;
 	vi.mocked(HttpClient).mockImplementation(
 		class {
+			// Evaluated once per `new HttpClient()`, so each download attempt
+			// takes the next response.
 			get = (() => {
 				const config = responses[Math.min(idx++, responses.length - 1)];
 				return vi.fn().mockResolvedValue({
@@ -72,6 +75,32 @@ function mockHttpGetSequence(
 	);
 }
 
+/** Responds 200 but fails after the first chunk, like a dropped connection. */
+function mockHttpGetFailingStream() {
+	vi.mocked(HttpClient).mockImplementation(
+		class {
+			get = vi.fn().mockImplementation(async () => {
+				async function* failing() {
+					yield Buffer.from("partial-data");
+					throw new Error("Connection reset");
+				}
+				return {
+					message: Object.assign(Readable.from(failing()), {
+						statusCode: 200,
+						headers: { "content-length": "1000" },
+					}),
+				};
+			});
+		} as unknown as typeof HttpClient,
+	);
+}
+
+function retryLogCount() {
+	return vi
+		.mocked(info)
+		.mock.calls.filter((c) => String(c[0]).includes("Retrying in")).length;
+}
+
 beforeEach(() => {
 	mockHttpGetWith(200, String(testBuffer.length));
 	vi.mocked(extractTar).mockResolvedValue("/opt");
@@ -81,8 +110,9 @@ beforeEach(() => {
 	vi.mocked(rmRF).mockResolvedValue();
 });
 
-// Import after mocks are set up
-const { installFromArchive, setupPath } = await import("../src/installer");
+afterEach(() => {
+	vi.restoreAllMocks();
+});
 
 describe("installFromArchive", () => {
 	it("uses extractTar with xJ flags on linux", async () => {
@@ -212,8 +242,7 @@ describe("installFromArchive", () => {
 	});
 
 	it("uses fallback speed when elapsed is zero", async () => {
-		const now = Date.now();
-		const spy = vi.spyOn(Date, "now").mockReturnValue(now);
+		vi.spyOn(Date, "now").mockReturnValue(Date.now());
 		// content-length missing, single large chunk crossing 100 MB boundary
 		const chunk = Buffer.alloc(101 * 1024 * 1024, "a");
 		const sha = createHash("sha256").update(chunk).digest("hex");
@@ -226,7 +255,6 @@ describe("installFromArchive", () => {
 			.mock.calls.filter((c) => String(c[0]).includes("MB downloaded"));
 		expect(progressCalls).toHaveLength(1);
 		expect(progressCalls[0][0]).toContain("MB/s");
-		spy.mockRestore();
 	});
 
 	it("moves flutter directory to sdkPath", async () => {
@@ -259,10 +287,7 @@ describe("download retry", () => {
 		);
 		await installFromArchive(resolved, "/opt/flutter", "linux");
 		expect(mv).toHaveBeenCalled();
-		const retryCalls = vi
-			.mocked(info)
-			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
-		expect(retryCalls).toHaveLength(1);
+		expect(retryLogCount()).toBe(1);
 	});
 
 	it("retries on HTTP 429 and succeeds on next attempt", async () => {
@@ -279,10 +304,7 @@ describe("download retry", () => {
 		await expect(
 			installFromArchive(resolved, "/opt/flutter", "linux"),
 		).rejects.toThrow("Download failed: HTTP 404");
-		const retryCalls = vi
-			.mocked(info)
-			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
-		expect(retryCalls).toHaveLength(0);
+		expect(retryLogCount()).toBe(0);
 	});
 
 	it("does not retry on HTTP 403", async () => {
@@ -290,10 +312,7 @@ describe("download retry", () => {
 		await expect(
 			installFromArchive(resolved, "/opt/flutter", "linux"),
 		).rejects.toThrow("Download failed: HTTP 403");
-		const retryCalls = vi
-			.mocked(info)
-			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
-		expect(retryCalls).toHaveLength(0);
+		expect(retryLogCount()).toBe(0);
 	});
 
 	it("throws after exhausting all retry attempts", async () => {
@@ -301,29 +320,11 @@ describe("download retry", () => {
 		await expect(
 			installFromArchive(resolved, "/opt/flutter", "linux"),
 		).rejects.toThrow("Download failed: HTTP 500");
-		const retryCalls = vi
-			.mocked(info)
-			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
-		expect(retryCalls).toHaveLength(2);
+		expect(retryLogCount()).toBe(2);
 	});
 
 	it("cleans up temp file when stream fails mid-download", async () => {
-		vi.mocked(HttpClient).mockImplementation(
-			class {
-				get = vi.fn().mockImplementation(async () => {
-					async function* failing() {
-						yield Buffer.from("partial-data");
-						throw new Error("Connection reset");
-					}
-					return {
-						message: Object.assign(Readable.from(failing()), {
-							statusCode: 200,
-							headers: { "content-length": "1000" },
-						}),
-					};
-				});
-			} as unknown as typeof HttpClient,
-		);
+		mockHttpGetFailingStream();
 		await expect(
 			installFromArchive(resolved, "/opt/flutter", "linux"),
 		).rejects.toThrow("Connection reset");
@@ -332,22 +333,7 @@ describe("download retry", () => {
 
 	it("warns when temp file cleanup fails on stream error", async () => {
 		vi.mocked(rmRF).mockRejectedValue(new Error("EPERM"));
-		vi.mocked(HttpClient).mockImplementation(
-			class {
-				get = vi.fn().mockImplementation(async () => {
-					async function* failing() {
-						yield Buffer.from("partial-data");
-						throw new Error("Connection reset");
-					}
-					return {
-						message: Object.assign(Readable.from(failing()), {
-							statusCode: 200,
-							headers: { "content-length": "1000" },
-						}),
-					};
-				});
-			} as unknown as typeof HttpClient,
-		);
+		mockHttpGetFailingStream();
 		await expect(
 			installFromArchive(resolved, "/opt/flutter", "linux"),
 		).rejects.toThrow("Connection reset");
@@ -390,10 +376,7 @@ describe("download retry", () => {
 		);
 		await installFromArchive(resolved, "/opt/flutter", "linux");
 		expect(mv).toHaveBeenCalled();
-		const retryCalls = vi
-			.mocked(info)
-			.mock.calls.filter((c) => String(c[0]).includes("Retrying in"));
-		expect(retryCalls).toHaveLength(1);
+		expect(retryLogCount()).toBe(1);
 	});
 });
 

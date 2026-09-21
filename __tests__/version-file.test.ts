@@ -5,77 +5,34 @@ import { readFvmrc, readPubspec, readVersionFile } from "../src/version-file";
 const fixturesDir = join(__dirname, "fixtures");
 
 describe("readPubspec", () => {
-	it("reads constraint from pubspec with flutter", () => {
-		expect(readPubspec(join(fixturesDir, "pubspec-with-flutter.yaml"))).toBe(
-			">=3.29.0 <4.0.0",
-		);
+	it.each([
+		{ file: "pubspec-with-flutter.yaml", expected: ">=3.29.0 <4.0.0" },
+		{ file: "pubspec-exact.yaml", expected: "3.29.0" },
+		{ file: "pubspec-comment.yaml", expected: ">=3.29.0 <4.0.0" },
+		{ file: "pubspec-unquoted.yaml", expected: "3.29.0" },
+		{ file: "pubspec-unquoted-comment.yaml", expected: "3.29.0" },
+		{ file: "pubspec-single-quoted.yaml", expected: ">=3.29.0 <4.0.0" },
+		{ file: "pubspec-blank-lines.yaml", expected: ">=3.29.0 <4.0.0" },
+		// A comment is not indented content, so it does not close the block.
+		{ file: "pubspec-column-zero-comment.yaml", expected: ">=3.29.0 <4.0.0" },
+		{ file: "pubspec-empty-quoted.yaml", expected: "" },
+	])("reads '$expected' from $file", ({ file, expected }) => {
+		expect(readPubspec(join(fixturesDir, file))).toBe(expected);
 	});
 
-	it("reads exact version from pubspec", () => {
-		expect(readPubspec(join(fixturesDir, "pubspec-exact.yaml"))).toBe("3.29.0");
-	});
-
-	it("throws when flutter is not in environment", () => {
-		expect(() =>
-			readPubspec(join(fixturesDir, "pubspec-without-flutter.yaml")),
-		).toThrow(
-			"pubspec-without-flutter.yaml does not contain environment.flutter",
-		);
-	});
-
-	it("reads constraint from pubspec with quoted inline comment", () => {
-		expect(readPubspec(join(fixturesDir, "pubspec-comment.yaml"))).toBe(
-			">=3.29.0 <4.0.0",
-		);
-	});
-
-	it("reads unquoted version from pubspec", () => {
-		expect(readPubspec(join(fixturesDir, "pubspec-unquoted.yaml"))).toBe(
-			"3.29.0",
-		);
-	});
-
-	it("reads unquoted version from pubspec with inline comment", () => {
-		expect(
-			readPubspec(join(fixturesDir, "pubspec-unquoted-comment.yaml")),
-		).toBe("3.29.0");
-	});
-
-	it("reads constraint from pubspec with single quotes", () => {
-		expect(readPubspec(join(fixturesDir, "pubspec-single-quoted.yaml"))).toBe(
-			">=3.29.0 <4.0.0",
-		);
-	});
-
-	it("reads constraint from pubspec with blank lines in environment", () => {
-		expect(readPubspec(join(fixturesDir, "pubspec-blank-lines.yaml"))).toBe(
-			">=3.29.0 <4.0.0",
-		);
-	});
-
-	// A comment is not indented content, so it does not close the block.
-	it("reads constraint from pubspec with a comment at column zero", () => {
-		expect(
-			readPubspec(join(fixturesDir, "pubspec-column-zero-comment.yaml")),
-		).toBe(">=3.29.0 <4.0.0");
-	});
-
-	it("returns empty string for empty quoted flutter value", () => {
-		expect(readPubspec(join(fixturesDir, "pubspec-empty-quoted.yaml"))).toBe(
-			"",
-		);
-	});
-
-	it("throws for invalid YAML", () => {
-		expect(() =>
-			readPubspec(join(fixturesDir, "pubspec-invalid.yaml")),
-		).toThrow("does not contain environment.flutter");
-	});
-
-	it("throws for non-existent file", () => {
-		expect(() => readPubspec(join(fixturesDir, "non-existent.yaml"))).toThrow(
-			/ENOENT/,
-		);
+	it.each([
+		{
+			file: "pubspec-without-flutter.yaml",
+			error:
+				"pubspec-without-flutter.yaml does not contain environment.flutter",
+		},
+		{
+			file: "pubspec-invalid.yaml",
+			error: "does not contain environment.flutter",
+		},
+		{ file: "non-existent.yaml", error: /ENOENT/ },
+	])("throws for $file", ({ file, error }) => {
+		expect(() => readPubspec(join(fixturesDir, file))).toThrow(error);
 	});
 });
 
@@ -113,7 +70,9 @@ describe("readFvmrc", () => {
 	});
 
 	it("throws for invalid JSON", () => {
-		expect(() => readFvmrc(join(fixturesDir, "fvmrc-invalid.json"))).toThrow();
+		expect(() => readFvmrc(join(fixturesDir, "fvmrc-invalid.json"))).toThrow(
+			SyntaxError,
+		);
 	});
 });
 
