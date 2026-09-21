@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { restoreCache, saveCache } from "@actions/cache";
 import { info, warning } from "@actions/core";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	getPubCachePaths,
 	isValidLocalSdk,
@@ -101,39 +101,22 @@ describe("sdkCachePath", () => {
 	});
 
 	it("uses RUNNER_TOOL_CACHE env var", () => {
-		const original = process.env.RUNNER_TOOL_CACHE;
-		process.env.RUNNER_TOOL_CACHE = "/custom/cache";
+		vi.stubEnv("RUNNER_TOOL_CACHE", "/custom/cache");
 		const result = sdkCachePath("3.29.0", "stable", "x64");
 		expect(result).toContain("/custom/cache");
-		if (original === undefined) {
-			delete process.env.RUNNER_TOOL_CACHE;
-		} else {
-			process.env.RUNNER_TOOL_CACHE = original;
-		}
 	});
 
 	// On a runner RUNNER_TOOL_CACHE is always set, so the fallback is only
 	// reached when this test clears it.
 	it("falls back to the default tool cache without RUNNER_TOOL_CACHE", () => {
-		const original = process.env.RUNNER_TOOL_CACHE;
-		delete process.env.RUNNER_TOOL_CACHE;
-		try {
-			expect(sdkCachePath("3.29.0", "stable", "x64")).toContain(
-				"/opt/hostedtoolcache",
-			);
-		} finally {
-			if (original !== undefined) {
-				process.env.RUNNER_TOOL_CACHE = original;
-			}
-		}
+		vi.stubEnv("RUNNER_TOOL_CACHE", undefined);
+		expect(sdkCachePath("3.29.0", "stable", "x64")).toContain(
+			"/opt/hostedtoolcache",
+		);
 	});
 });
 
 describe("isValidLocalSdk", () => {
-	afterEach(() => {
-		vi.mocked(existsSync).mockReset();
-	});
-
 	it("returns true when flutter binary exists", () => {
 		vi.mocked(existsSync).mockReturnValue(true);
 		expect(isValidLocalSdk("/opt/flutter")).toBe(true);

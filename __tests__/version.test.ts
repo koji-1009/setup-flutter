@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, type Mock, vi } from "vitest";
+import { HttpClient } from "@actions/http-client";
+import { describe, expect, it, type Mock, vi } from "vitest";
 import {
 	type FlutterManifest,
 	fetchManifest,
@@ -8,12 +9,13 @@ import {
 	parseVersionSpec,
 	resolveFromManifest,
 	specMatchesVersion,
+	type VersionSpec,
 } from "../src/version";
 
 vi.mock("@actions/http-client");
 vi.mock("@actions/core");
 vi.mock("node:timers/promises", () => ({
-	setTimeout: vi.fn().mockResolvedValue(undefined),
+	setTimeout: vi.fn(() => Promise.resolve()),
 }));
 
 const linuxFixture: FlutterManifest = JSON.parse(
@@ -25,166 +27,55 @@ const macosFixture: FlutterManifest = JSON.parse(
 );
 
 describe("parseVersionSpec", () => {
-	it("returns any for empty string", () => {
-		expect(parseVersionSpec("")).toEqual({ type: "any" });
+	it.each<{ input: string; expected: VersionSpec }>([
+		{ input: "", expected: { type: "any" } },
+		{ input: "any", expected: { type: "any" } },
+		{ input: "   ", expected: { type: "any" } },
+		{ input: "stable", expected: { type: "channel", channel: "stable" } },
+		{ input: "beta", expected: { type: "channel", channel: "beta" } },
+		{ input: "master", expected: { type: "channel", channel: "master" } },
+		{
+			input: ">=3.38.0 <3.42.0",
+			expected: { type: "constraint", range: ">=3.38.0 <3.42.0" },
+		},
+		{ input: "^3.27.0", expected: { type: "constraint", range: "^3.27.0" } },
+		{ input: "<4.0.0", expected: { type: "constraint", range: "<4.0.0" } },
+		{ input: ">3.0.0", expected: { type: "constraint", range: ">3.0.0" } },
+		{ input: "<=3.29.0", expected: { type: "constraint", range: "<=3.29.0" } },
+		{ input: "3.x", expected: { type: "range", major: 3 } },
+		{ input: "3.41.x", expected: { type: "range", major: 3, minor: 41 } },
+		{ input: "3.27.0", expected: { type: "exact", version: "3.27.0" } },
+		{ input: "3.41.2", expected: { type: "exact", version: "3.41.2" } },
+		{
+			input: "3.29.0-0.1.pre",
+			expected: { type: "exact", version: "3.29.0-0.1.pre" },
+		},
+		{ input: "  3.41.2  ", expected: { type: "exact", version: "3.41.2" } },
+		// ~ is not a Dart constraint operator.
+		{ input: "~3.27.0", expected: { type: "ref", ref: "~3.27.0" } },
+		{ input: "abc1234", expected: { type: "ref", ref: "abc1234" } },
+		{
+			input: "my-feature-branch",
+			expected: { type: "ref", ref: "my-feature-branch" },
+		},
+		// Contains an x, but is not an x-range.
+		{
+			input: "fix-navigation",
+			expected: { type: "ref", ref: "fix-navigation" },
+		},
+		{ input: "next", expected: { type: "ref", ref: "next" } },
+		// dev is not a supported channel.
+		{ input: "dev", expected: { type: "ref", ref: "dev" } },
+	])("parses '$input' as $expected.type", ({ input, expected }) => {
+		expect(parseVersionSpec(input)).toEqual(expected);
 	});
 
-	it('returns any for "any"', () => {
-		expect(parseVersionSpec("any")).toEqual({ type: "any" });
-	});
-
-	it("returns channel for stable", () => {
-		expect(parseVersionSpec("stable")).toEqual({
-			type: "channel",
-			channel: "stable",
-		});
-	});
-
-	it("returns channel for beta", () => {
-		expect(parseVersionSpec("beta")).toEqual({
-			type: "channel",
-			channel: "beta",
-		});
-	});
-
-	it("returns channel for master", () => {
-		expect(parseVersionSpec("master")).toEqual({
-			type: "channel",
-			channel: "master",
-		});
-	});
-
-	it("returns constraint for >=", () => {
-		expect(parseVersionSpec(">=3.38.0 <3.42.0")).toEqual({
-			type: "constraint",
-			range: ">=3.38.0 <3.42.0",
-		});
-	});
-
-	it("returns constraint for ^", () => {
-		expect(parseVersionSpec("^3.27.0")).toEqual({
-			type: "constraint",
-			range: "^3.27.0",
-		});
-	});
-
-	it("throws for a constraint that is not a valid semver range", () => {
-		expect(() => parseVersionSpec(">=abc")).toThrow(
-			"Invalid version constraint '>=abc'",
-		);
-	});
-
-	it("returns ref for ~ (not a Dart constraint)", () => {
-		expect(parseVersionSpec("~3.27.0")).toEqual({
-			type: "ref",
-			ref: "~3.27.0",
-		});
-	});
-
-	it("returns constraint for <", () => {
-		expect(parseVersionSpec("<4.0.0")).toEqual({
-			type: "constraint",
-			range: "<4.0.0",
-		});
-	});
-
-	it("returns constraint for >", () => {
-		expect(parseVersionSpec(">3.0.0")).toEqual({
-			type: "constraint",
-			range: ">3.0.0",
-		});
-	});
-
-	it("returns constraint for <=", () => {
-		expect(parseVersionSpec("<=3.29.0")).toEqual({
-			type: "constraint",
-			range: "<=3.29.0",
-		});
-	});
-
-	it("returns range for 3.x", () => {
-		expect(parseVersionSpec("3.x")).toEqual({ type: "range", major: 3 });
-	});
-
-	it("returns range for 3.41.x", () => {
-		expect(parseVersionSpec("3.41.x")).toEqual({
-			type: "range",
-			major: 3,
-			minor: 41,
-		});
-	});
-
-	it("returns exact for 3.27.0", () => {
-		expect(parseVersionSpec("3.27.0")).toEqual({
-			type: "exact",
-			version: "3.27.0",
-		});
-	});
-
-	it("returns exact for 3.41.2", () => {
-		expect(parseVersionSpec("3.41.2")).toEqual({
-			type: "exact",
-			version: "3.41.2",
-		});
-	});
-
-	it("returns ref for commit hash", () => {
-		expect(parseVersionSpec("abc1234")).toEqual({
-			type: "ref",
-			ref: "abc1234",
-		});
-	});
-
-	it("throws for ambiguous major.minor form 3.4", () => {
-		expect(() => parseVersionSpec("3.4")).toThrow(
-			"Ambiguous version '3.4': use '3.4.x'",
-		);
-	});
-
-	it("throws for ambiguous bare major form 3", () => {
-		expect(() => parseVersionSpec("3")).toThrow(
-			"Ambiguous version '3': use '3.x'",
-		);
-	});
-
-	it("returns ref for branch name", () => {
-		expect(parseVersionSpec("my-feature-branch")).toEqual({
-			type: "ref",
-			ref: "my-feature-branch",
-		});
-	});
-
-	it("returns ref for branch name containing x", () => {
-		expect(parseVersionSpec("fix-navigation")).toEqual({
-			type: "ref",
-			ref: "fix-navigation",
-		});
-	});
-
-	it('returns ref for "next"', () => {
-		expect(parseVersionSpec("next")).toEqual({ type: "ref", ref: "next" });
-	});
-
-	it('returns ref for "dev" (unsupported channel)', () => {
-		expect(parseVersionSpec("dev")).toEqual({ type: "ref", ref: "dev" });
-	});
-
-	it("returns exact for pre-release version 3.29.0-0.1.pre", () => {
-		expect(parseVersionSpec("3.29.0-0.1.pre")).toEqual({
-			type: "exact",
-			version: "3.29.0-0.1.pre",
-		});
-	});
-
-	it("returns any for whitespace-only input", () => {
-		expect(parseVersionSpec("   ")).toEqual({ type: "any" });
-	});
-
-	it("trims whitespace", () => {
-		expect(parseVersionSpec("  3.41.2  ")).toEqual({
-			type: "exact",
-			version: "3.41.2",
-		});
+	it.each([
+		{ input: ">=abc", error: "Invalid version constraint '>=abc'" },
+		{ input: "3.4", error: "Ambiguous version '3.4': use '3.4.x'" },
+		{ input: "3", error: "Ambiguous version '3': use '3.x'" },
+	])("throws for '$input'", ({ input, error }) => {
+		expect(() => parseVersionSpec(input)).toThrow(error);
 	});
 });
 
@@ -564,28 +455,20 @@ describe("resolveFromManifest (macos arm64)", () => {
 	});
 });
 
-const { HttpClient } = (await import("@actions/http-client")) as unknown as {
-	HttpClient: Mock<new () => unknown>;
-};
+function mockGetJson(getJson: Mock) {
+	vi.mocked(HttpClient).mockImplementation(
+		class {
+			getJson = getJson;
+		} as unknown as typeof HttpClient,
+	);
+}
 
 describe("fetchManifest", () => {
-	const originalEnv = process.env.FLUTTER_STORAGE_BASE_URL;
-
-	afterEach(() => {
-		if (originalEnv === undefined) {
-			delete process.env.FLUTTER_STORAGE_BASE_URL;
-		} else {
-			process.env.FLUTTER_STORAGE_BASE_URL = originalEnv;
-		}
-	});
-
 	it("fetches and returns manifest", async () => {
-		HttpClient.mockImplementation(
-			class {
-				getJson = vi.fn().mockResolvedValue({
-					result: JSON.parse(JSON.stringify(linuxFixture)),
-				});
-			},
+		mockGetJson(
+			vi.fn().mockResolvedValue({
+				result: JSON.parse(JSON.stringify(linuxFixture)),
+			}),
 		);
 
 		const result = await fetchManifest("linux");
@@ -594,14 +477,12 @@ describe("fetchManifest", () => {
 	});
 
 	it("rewrites base_url when FLUTTER_STORAGE_BASE_URL is set", async () => {
-		process.env.FLUTTER_STORAGE_BASE_URL = "https://mirror.example.com";
+		vi.stubEnv("FLUTTER_STORAGE_BASE_URL", "https://mirror.example.com");
 
-		HttpClient.mockImplementation(
-			class {
-				getJson = vi.fn().mockResolvedValue({
-					result: JSON.parse(JSON.stringify(linuxFixture)),
-				});
-			},
+		mockGetJson(
+			vi.fn().mockResolvedValue({
+				result: JSON.parse(JSON.stringify(linuxFixture)),
+			}),
 		);
 
 		const result = await fetchManifest("linux");
@@ -612,11 +493,7 @@ describe("fetchManifest", () => {
 
 	it("throws when result is null", async () => {
 		const getJson = vi.fn().mockResolvedValue({ result: null });
-		HttpClient.mockImplementation(
-			class {
-				getJson = getJson;
-			},
-		);
+		mockGetJson(getJson);
 
 		await expect(fetchManifest("linux")).rejects.toThrow(
 			"Failed to fetch manifest",
@@ -632,11 +509,7 @@ describe("fetchManifest", () => {
 				Object.assign(new Error("Failed request: (500)"), { statusCode: 500 }),
 			)
 			.mockResolvedValue({ result: JSON.parse(JSON.stringify(linuxFixture)) });
-		HttpClient.mockImplementation(
-			class {
-				getJson = getJson;
-			},
-		);
+		mockGetJson(getJson);
 
 		const result = await fetchManifest("linux");
 		expect(result.releases.length).toBeGreaterThan(0);
@@ -645,11 +518,7 @@ describe("fetchManifest", () => {
 
 	it("retries on network error and throws after exhausting attempts", async () => {
 		const getJson = vi.fn().mockRejectedValue(new Error("ECONNRESET"));
-		HttpClient.mockImplementation(
-			class {
-				getJson = getJson;
-			},
-		);
+		mockGetJson(getJson);
 
 		await expect(fetchManifest("linux")).rejects.toThrow("ECONNRESET");
 		expect(getJson).toHaveBeenCalledTimes(3);
@@ -657,11 +526,7 @@ describe("fetchManifest", () => {
 
 	it("wraps a non-Error rejection", async () => {
 		const getJson = vi.fn().mockRejectedValue("socket hang up");
-		HttpClient.mockImplementation(
-			class {
-				getJson = getJson;
-			},
-		);
+		mockGetJson(getJson);
 
 		await expect(fetchManifest("linux")).rejects.toThrow("socket hang up");
 		expect(getJson).toHaveBeenCalledTimes(3);
@@ -673,11 +538,7 @@ describe("fetchManifest", () => {
 			.mockRejectedValue(
 				Object.assign(new Error("Failed request: (403)"), { statusCode: 403 }),
 			);
-		HttpClient.mockImplementation(
-			class {
-				getJson = getJson;
-			},
-		);
+		mockGetJson(getJson);
 
 		await expect(fetchManifest("linux")).rejects.toThrow("(403)");
 		expect(getJson).toHaveBeenCalledTimes(1);

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { warning } from "@actions/core";
 import { exec } from "@actions/exec";
 import { rmRF } from "@actions/io";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +20,14 @@ vi.mock("@actions/io");
 const fixture: FlutterManifest = JSON.parse(
 	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),
 );
+
+/** Makes every git command print `output`, as `git ls-remote` would. */
+function mockLsRemote(output: string) {
+	vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
+		options?.listeners?.stdout?.(Buffer.from(output));
+		return 0;
+	});
+}
 
 describe("isOriginalRepo", () => {
 	it("returns true for flutter/flutter.git", () => {
@@ -73,13 +82,7 @@ describe("resolveGitRef (original repo + manifest)", () => {
 	});
 
 	it("falls back to ls-remote for master (not in current_release)", async () => {
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				const data = Buffer.from("abc123def456\trefs/heads/master\n");
-				options.listeners.stdout(data);
-			}
-			return 0;
-		});
+		mockLsRemote("abc123def456\trefs/heads/master\n");
 
 		const result = await resolveGitRef(
 			"https://github.com/flutter/flutter.git",
@@ -92,13 +95,7 @@ describe("resolveGitRef (original repo + manifest)", () => {
 
 describe("resolveGitRef (fork)", () => {
 	it("resolves branch from ls-remote", async () => {
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				const data = Buffer.from("deadbeef1234\trefs/heads/my-branch\n");
-				options.listeners.stdout(data);
-			}
-			return 0;
-		});
+		mockLsRemote("deadbeef1234\trefs/heads/my-branch\n");
 
 		const result = await resolveGitRef(
 			"https://github.com/user/flutter-fork.git",
@@ -108,13 +105,7 @@ describe("resolveGitRef (fork)", () => {
 	});
 
 	it("resolves tag from ls-remote", async () => {
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				const data = Buffer.from("cafebabe5678\trefs/tags/v1.0.0\n");
-				options.listeners.stdout(data);
-			}
-			return 0;
-		});
+		mockLsRemote("cafebabe5678\trefs/tags/v1.0.0\n");
 
 		const result = await resolveGitRef(
 			"https://github.com/user/flutter-fork.git",
@@ -124,12 +115,7 @@ describe("resolveGitRef (fork)", () => {
 	});
 
 	it("returns full hash directly if ref is a 40-char commit hash", async () => {
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				options.listeners.stdout(Buffer.from(""));
-			}
-			return 0;
-		});
+		mockLsRemote("");
 
 		const fullHash = "abcdef1234567890abcdef1234567890abcdef12";
 		const result = await resolveGitRef(
@@ -140,13 +126,7 @@ describe("resolveGitRef (fork)", () => {
 	});
 
 	it("returns short hash with warning when not found via ls-remote", async () => {
-		const { warning } = await import("@actions/core");
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				options.listeners.stdout(Buffer.from(""));
-			}
-			return 0;
-		});
+		mockLsRemote("");
 
 		const result = await resolveGitRef(
 			"https://github.com/user/flutter-fork.git",
@@ -159,12 +139,7 @@ describe("resolveGitRef (fork)", () => {
 	});
 
 	it("throws when ref cannot be resolved", async () => {
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				options.listeners.stdout(Buffer.from(""));
-			}
-			return 0;
-		});
+		mockLsRemote("");
 
 		await expect(
 			resolveGitRef(
@@ -205,16 +180,9 @@ describe("resolveGitVersion (original repo + manifest)", () => {
 
 	it("falls back to git tags when the manifest has no match", async () => {
 		// >=99.0.0 isn't in the manifest; resolve from tags instead of failing.
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				options.listeners.stdout(
-					Buffer.from(
-						"1111111111111111111111111111111111111111\trefs/tags/99.1.0\n",
-					),
-				);
-			}
-			return 0;
-		});
+		mockLsRemote(
+			"1111111111111111111111111111111111111111\trefs/tags/99.1.0\n",
+		);
 
 		const result = await resolveGitVersion(
 			"https://github.com/flutter/flutter.git",
@@ -230,19 +198,12 @@ describe("resolveGitVersion (original repo + manifest)", () => {
 		// Regression: master has no manifest entries, so the manifest lookup
 		// returns null; it must fall back to tags rather than throw. master allows
 		// prereleases, so the highest .pre wins.
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				options.listeners.stdout(
-					Buffer.from(
-						[
-							"1111111111111111111111111111111111111111\trefs/tags/3.41.0",
-							"2222222222222222222222222222222222222222\trefs/tags/3.42.0-0.1.pre",
-						].join("\n"),
-					),
-				);
-			}
-			return 0;
-		});
+		mockLsRemote(
+			[
+				"1111111111111111111111111111111111111111\trefs/tags/3.41.0",
+				"2222222222222222222222222222222222222222\trefs/tags/3.42.0-0.1.pre",
+			].join("\n"),
+		);
 
 		const result = await resolveGitVersion(
 			"https://github.com/flutter/flutter.git",
@@ -256,19 +217,10 @@ describe("resolveGitVersion (original repo + manifest)", () => {
 });
 
 describe("resolveGitVersion (fork via ls-remote --tags)", () => {
-	function mockTags(output: string) {
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				options.listeners.stdout(Buffer.from(output));
-			}
-			return 0;
-		});
-	}
-
 	it("picks the highest tag satisfying a range", async () => {
 		// The highest match (3.27.4) is listed before a lower match (3.27.0) to
 		// exercise the "don't replace the running best" path.
-		mockTags(
+		mockLsRemote(
 			[
 				"2222222222222222222222222222222222222222\trefs/tags/3.27.4",
 				"1111111111111111111111111111111111111111\trefs/tags/3.27.0",
@@ -294,7 +246,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("picks the highest tag satisfying a constraint", async () => {
-		mockTags(
+		mockLsRemote(
 			[
 				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/3.10.5",
 				"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/3.10.6",
@@ -312,7 +264,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("prefers the peeled hash for annotated tags", async () => {
-		mockTags(
+		mockLsRemote(
 			[
 				"7777777777777777777777777777777777777777\trefs/tags/3.27.0",
 				"8888888888888888888888888888888888888888\trefs/tags/3.27.0^{}",
@@ -328,7 +280,9 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("normalizes v-prefixed tags but keeps the original ref for checkout", async () => {
-		mockTags("abcabcabcabcabcabcabcabcabcabcabcabcabca\trefs/tags/v1.12.13");
+		mockLsRemote(
+			"abcabcabcabcabcabcabcabcabcabcabcabcabca\trefs/tags/v1.12.13",
+		);
 
 		const result = await resolveGitVersion(
 			"https://github.com/user/flutter-fork.git",
@@ -340,7 +294,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("ignores non-version tags and blank lines", async () => {
-		mockTags(
+		mockLsRemote(
 			[
 				"1111111111111111111111111111111111111111\trefs/tags/nightly",
 				"2222222222222222222222222222222222222222\trefs/tags/latest",
@@ -360,7 +314,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("skips tag lines whose hash is not a full hex hash", async () => {
-		mockTags(
+		mockLsRemote(
 			[
 				"garbage\trefs/tags/3.30.0",
 				"4444444444444444444444444444444444444444\trefs/tags/3.29.0",
@@ -376,7 +330,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("throws when no tag matches the spec", async () => {
-		mockTags("1111111111111111111111111111111111111111\trefs/tags/2.0.0");
+		mockLsRemote("1111111111111111111111111111111111111111\trefs/tags/2.0.0");
 
 		await expect(
 			resolveGitVersion(
@@ -388,7 +342,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("uses ls-remote --tags for the original repo when no manifest is given", async () => {
-		mockTags("5555555555555555555555555555555555555555\trefs/tags/3.30.0");
+		mockLsRemote("5555555555555555555555555555555555555555\trefs/tags/3.30.0");
 
 		const result = await resolveGitVersion(
 			"https://github.com/flutter/flutter.git",
@@ -402,7 +356,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	it("on the stable channel, skips prerelease tags for a range", async () => {
 		// Regression: previously the fork path ignored channel and rcompare ranks
 		// 3.42.0-0.1.pre above 3.41.2, so a stable request installed a beta.
-		mockTags(
+		mockLsRemote(
 			[
 				"1111111111111111111111111111111111111111\trefs/tags/3.41.2",
 				"2222222222222222222222222222222222222222\trefs/tags/3.42.0-0.1.pre",
@@ -419,7 +373,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("on the stable channel, skips prerelease tags inside a constraint range", async () => {
-		mockTags(
+		mockLsRemote(
 			[
 				"3333333333333333333333333333333333333333\trefs/tags/3.27.4",
 				"4444444444444444444444444444444444444444\trefs/tags/3.27.5-1.0.pre",
@@ -435,7 +389,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("on the beta channel, allows prerelease tags", async () => {
-		mockTags(
+		mockLsRemote(
 			[
 				"5555555555555555555555555555555555555555\trefs/tags/3.41.2",
 				"6666666666666666666666666666666666666666\trefs/tags/3.42.0-0.1.pre",
@@ -452,7 +406,7 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 	});
 
 	it("on the stable channel, throws when only prerelease tags match", async () => {
-		mockTags(
+		mockLsRemote(
 			"7777777777777777777777777777777777777777\trefs/tags/3.42.0-0.1.pre",
 		);
 
@@ -517,14 +471,7 @@ describe("resolveGit (dispatch)", () => {
 	});
 
 	it("falls back to the ref name as version for a fork ref with no manifest", async () => {
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				options.listeners.stdout(
-					Buffer.from("deadbeef1234\trefs/heads/my-branch\n"),
-				);
-			}
-			return 0;
-		});
+		mockLsRemote("deadbeef1234\trefs/heads/my-branch\n");
 
 		const result = await resolveGit(
 			"https://github.com/user/flutter-fork.git",
@@ -539,14 +486,7 @@ describe("resolveGit (dispatch)", () => {
 	});
 
 	it("throws when the resolved hash is not valid hex", async () => {
-		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
-			if (options?.listeners?.stdout) {
-				options.listeners.stdout(
-					Buffer.from("not-a-hash\trefs/heads/my-branch\n"),
-				);
-			}
-			return 0;
-		});
+		mockLsRemote("not-a-hash\trefs/heads/my-branch\n");
 
 		await expect(
 			resolveGit(
@@ -689,19 +629,22 @@ describe("installFromGit", () => {
 
 	it("throws when command times out", async () => {
 		vi.useFakeTimers();
-		vi.mocked(exec).mockReturnValue(new Promise(() => {}));
+		try {
+			vi.mocked(exec).mockReturnValue(new Promise(() => {}));
 
-		const promise = installFromGit(
-			"https://github.com/flutter/flutter.git",
-			"stable",
-			"/opt/flutter",
-			"abc123def4567890abc123def4567890abc123de",
-		);
+			const promise = installFromGit(
+				"https://github.com/flutter/flutter.git",
+				"stable",
+				"/opt/flutter",
+				"abc123def4567890abc123def4567890abc123de",
+			);
 
-		const assertion = expect(promise).rejects.toThrow("Command timed out");
-		await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
-		await assertion;
-		vi.useRealTimers();
+			const assertion = expect(promise).rejects.toThrow("Command timed out");
+			await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+			await assertion;
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("propagates exec errors", async () => {

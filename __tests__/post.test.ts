@@ -1,15 +1,13 @@
 import { getState, info, warning } from "@actions/core";
 import { describe, expect, it, vi } from "vitest";
 import { getPubCachePaths, savePubCache, saveSdkCache } from "../src/cache";
+import { run } from "../src/post";
 
 vi.mock("@actions/core");
 vi.mock("../src/cache");
 
-const { run } = await import("../src/post");
-
 function setupState(state: Record<string, string>) {
 	vi.mocked(getState).mockImplementation((name: string) => state[name] || "");
-	vi.mocked(info).mockImplementation(() => {});
 	vi.mocked(saveSdkCache).mockResolvedValue();
 	vi.mocked(savePubCache).mockResolvedValue();
 	vi.mocked(getPubCachePaths).mockReturnValue(["/home/runner/.pub-cache"]);
@@ -129,7 +127,6 @@ describe("post run()", () => {
 			cachePub: "false",
 			pubCacheMiss: "false",
 		});
-		vi.mocked(warning).mockImplementation(() => {});
 		vi.mocked(saveSdkCache).mockRejectedValue("string error");
 
 		await run();
@@ -147,7 +144,6 @@ describe("post run()", () => {
 			cachePub: "false",
 			pubCacheMiss: "false",
 		});
-		vi.mocked(warning).mockImplementation(() => {});
 		vi.mocked(saveSdkCache).mockRejectedValue(new Error("unexpected"));
 
 		await run();

@@ -1,15 +1,13 @@
 import {
 	addPath,
-	exportVariable,
 	getBooleanInput,
 	getInput,
-	info,
 	saveState,
 	setFailed,
 	setOutput,
 	warning,
 } from "@actions/core";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	getPubCachePaths,
 	pubCacheKey,
@@ -20,6 +18,7 @@ import {
 } from "../src/cache";
 import { installFromGit, isOriginalRepo, resolveGit } from "../src/git-source";
 import { installFromArchive, setupPath } from "../src/installer";
+import { run } from "../src/main";
 import { registerProblemMatcher } from "../src/problem-matcher";
 import { getArch, getPlatform, getPubCachePath } from "../src/utils";
 import {
@@ -37,8 +36,6 @@ vi.mock("../src/installer");
 vi.mock("../src/cache");
 vi.mock("../src/git-source");
 vi.mock("../src/problem-matcher");
-
-const { run } = await import("../src/main");
 
 const defaultManifest = {
 	base_url: "https://storage.googleapis.com/flutter_infra_release/releases",
@@ -67,8 +64,11 @@ const defaultResolved = {
 	arch: "x64",
 };
 
-function setupDefaultMocks() {
-	const inputs: Record<string, string> = {
+let inputs: Record<string, string>;
+let boolInputs: Record<string, boolean>;
+
+beforeEach(() => {
+	inputs = {
 		"flutter-version": "",
 		"flutter-version-file": "",
 		channel: "stable",
@@ -77,7 +77,7 @@ function setupDefaultMocks() {
 		"git-source": "release",
 		"git-source-url": "https://github.com/flutter/flutter.git",
 	};
-	const boolInputs: Record<string, boolean> = {
+	boolInputs = {
 		"cache-sdk": true,
 		"cache-pub": true,
 		"dry-run": false,
@@ -88,13 +88,6 @@ function setupDefaultMocks() {
 	vi.mocked(getBooleanInput).mockImplementation(
 		(name: string) => boolInputs[name] ?? false,
 	);
-	vi.mocked(setOutput).mockImplementation(() => {});
-	vi.mocked(saveState).mockImplementation(() => {});
-	vi.mocked(setFailed).mockImplementation(() => {});
-	vi.mocked(warning).mockImplementation(() => {});
-	vi.mocked(info).mockImplementation(() => {});
-	vi.mocked(exportVariable).mockImplementation(() => {});
-	vi.mocked(addPath).mockImplementation(() => {});
 
 	vi.mocked(getPlatform).mockReturnValue("linux");
 	vi.mocked(getArch).mockReturnValue("x64");
@@ -105,7 +98,6 @@ function setupDefaultMocks() {
 	vi.mocked(resolveFromManifest).mockReturnValue(defaultResolved);
 
 	vi.mocked(installFromArchive).mockResolvedValue();
-	vi.mocked(setupPath).mockImplementation(() => {});
 
 	vi.mocked(sdkCacheKey).mockReturnValue("flutter-sdk-linux-stable-3.29.3-x64");
 	vi.mocked(sdkCachePath).mockReturnValue(
@@ -123,28 +115,33 @@ function setupDefaultMocks() {
 		ref: "3.29.3",
 	});
 	vi.mocked(installFromGit).mockResolvedValue();
-
-	vi.mocked(registerProblemMatcher).mockImplementation(() => {});
-
-	return { inputs, boolInputs };
-}
+});
 
 describe("main run()", () => {
 	it("installs latest stable with zero config", async () => {
-		setupDefaultMocks();
 		await run();
 
 		expect(fetchManifest).toHaveBeenCalledWith("linux");
-		expect(resolveFromManifest).toHaveBeenCalled();
-		expect(installFromArchive).toHaveBeenCalled();
-		expect(setupPath).toHaveBeenCalled();
+		expect(resolveFromManifest).toHaveBeenCalledWith(
+			defaultManifest,
+			{ type: "any" },
+			"stable",
+			"x64",
+		);
+		expect(installFromArchive).toHaveBeenCalledWith(
+			defaultResolved,
+			"/opt/hostedtoolcache/flutter/3.29.3-stable-x64",
+			"linux",
+		);
+		expect(setupPath).toHaveBeenCalledWith(
+			"/opt/hostedtoolcache/flutter/3.29.3-stable-x64",
+		);
 		expect(addPath).toHaveBeenCalledWith("/home/runner/.pub-cache/bin");
 		expect(setOutput).toHaveBeenCalledWith("flutter-version", "3.29.3");
 		expect(saveState).toHaveBeenCalledWith("installSuccess", "true");
 	});
 
 	it("resolves exact version", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["flutter-version"] = "3.29.0";
 		vi.mocked(parseVersionSpec).mockReturnValue({
 			type: "exact",
@@ -158,7 +155,6 @@ describe("main run()", () => {
 	});
 
 	it("warns when both flutter-version and flutter-version-file are specified", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["flutter-version"] = "3.29.0";
 		inputs["flutter-version-file"] = "pubspec.yaml";
 		vi.mocked(parseVersionSpec).mockReturnValue({
@@ -175,7 +171,6 @@ describe("main run()", () => {
 	});
 
 	it("overrides channel when version spec is a channel and warns", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["flutter-version-file"] = ".fvmrc";
 		vi.mocked(readVersionFile).mockReturnValue("beta");
 		vi.mocked(parseVersionSpec).mockReturnValue({
@@ -191,7 +186,6 @@ describe("main run()", () => {
 	});
 
 	it("does not restore cache when cache-sdk is false", async () => {
-		const { boolInputs } = setupDefaultMocks();
 		boolInputs["cache-sdk"] = false;
 
 		await run();
@@ -200,7 +194,6 @@ describe("main run()", () => {
 	});
 
 	it("skips pub cache when cache-pub is false", async () => {
-		const { boolInputs } = setupDefaultMocks();
 		boolInputs["cache-pub"] = false;
 
 		await run();
@@ -210,15 +203,12 @@ describe("main run()", () => {
 	});
 
 	it("registers the problem matcher by default", async () => {
-		setupDefaultMocks();
-
 		await run();
 
 		expect(registerProblemMatcher).toHaveBeenCalled();
 	});
 
 	it("does not register the problem matcher when problem-matcher is false", async () => {
-		const { boolInputs } = setupDefaultMocks();
 		boolInputs["problem-matcher"] = false;
 
 		await run();
@@ -227,7 +217,6 @@ describe("main run()", () => {
 	});
 
 	it("does not register the problem matcher on dry-run", async () => {
-		const { boolInputs } = setupDefaultMocks();
 		boolInputs["dry-run"] = true;
 
 		await run();
@@ -236,7 +225,6 @@ describe("main run()", () => {
 	});
 
 	it("does not install when cache hit", async () => {
-		setupDefaultMocks();
 		vi.mocked(restoreSdkCache).mockResolvedValue(true);
 
 		await run();
@@ -245,7 +233,6 @@ describe("main run()", () => {
 	});
 
 	it("handles dry-run: sets outputs but does not install", async () => {
-		const { boolInputs } = setupDefaultMocks();
 		boolInputs["dry-run"] = true;
 
 		await run();
@@ -258,7 +245,6 @@ describe("main run()", () => {
 	});
 
 	it("calls setFailed on error", async () => {
-		setupDefaultMocks();
 		vi.mocked(resolveFromManifest).mockReturnValue(null);
 
 		await run();
@@ -269,7 +255,6 @@ describe("main run()", () => {
 	});
 
 	it("calls setFailed for an invalid git-source value", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "releases";
 
 		await run();
@@ -283,7 +268,6 @@ describe("main run()", () => {
 
 	// git reads a leading '-' as an option rather than a repository.
 	it("calls setFailed for an option-like git-source-url", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source-url"] = "--upload-pack=touch /tmp/pwn";
 
 		await run();
@@ -297,7 +281,6 @@ describe("main run()", () => {
 	});
 
 	it("uses git mode with ref spec", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs["flutter-version"] = "my-branch";
 		const spec = { type: "ref" as const, ref: "my-branch" };
@@ -316,7 +299,6 @@ describe("main run()", () => {
 	});
 
 	it("uses git mode forwards the spec and channel to resolveGit", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs.channel = "beta";
 		const spec = { type: "channel" as const, channel: "beta" };
@@ -333,7 +315,6 @@ describe("main run()", () => {
 	});
 
 	it("uses git mode with range spec resolves a concrete version", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs.channel = "stable";
 		const spec = { type: "range" as const, major: 3, minor: 27 };
@@ -363,7 +344,6 @@ describe("main run()", () => {
 	});
 
 	it("uses git mode wires the resolved version to the output", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs.channel = "stable";
 		const spec = { type: "constraint" as const, range: ">=3.10.0 <3.11.0" };
@@ -380,7 +360,6 @@ describe("main run()", () => {
 	});
 
 	it("uses git mode and fails when resolution throws", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs.channel = "stable";
 		vi.mocked(parseVersionSpec).mockReturnValue({
@@ -400,7 +379,6 @@ describe("main run()", () => {
 	});
 
 	it("uses git mode with cache hit skips install", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		vi.mocked(parseVersionSpec).mockReturnValue({ type: "any" });
 		vi.mocked(restoreSdkCache).mockResolvedValue(true);
@@ -412,7 +390,6 @@ describe("main run()", () => {
 	});
 
 	it("reads version file when flutter-version is empty", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["flutter-version-file"] = "pubspec.yaml";
 		vi.mocked(readVersionFile).mockReturnValue(">=3.29.0 <4.0.0");
 		vi.mocked(parseVersionSpec).mockReturnValue({
@@ -427,7 +404,6 @@ describe("main run()", () => {
 	});
 
 	it("calls setFailed when fetchManifest throws", async () => {
-		setupDefaultMocks();
 		vi.mocked(fetchManifest).mockRejectedValue(new Error("Network error"));
 
 		await run();
@@ -436,7 +412,6 @@ describe("main run()", () => {
 	});
 
 	it("uses git mode with fork repo (no manifest)", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs["flutter-version"] = "my-branch";
 		const spec = { type: "ref" as const, ref: "my-branch" };
@@ -455,7 +430,6 @@ describe("main run()", () => {
 	});
 
 	it("uses git mode and outputs the resolved ref name when no version", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["git-source"] = "git";
 		inputs["flutter-version"] = "my-branch";
 		vi.mocked(parseVersionSpec).mockReturnValue({
@@ -474,7 +448,6 @@ describe("main run()", () => {
 	});
 
 	it("sets cache-pub-hit to true when pub cache hits", async () => {
-		setupDefaultMocks();
 		vi.mocked(restorePubCache).mockResolvedValue(true);
 
 		await run();
@@ -484,7 +457,6 @@ describe("main run()", () => {
 	});
 
 	it("skips pub cache restore when pubCacheKey returns null", async () => {
-		setupDefaultMocks();
 		vi.mocked(pubCacheKey).mockReturnValue(null);
 
 		await run();
@@ -493,7 +465,6 @@ describe("main run()", () => {
 	});
 
 	it("calls setFailed with String for non-Error thrown", async () => {
-		setupDefaultMocks();
 		vi.mocked(fetchManifest).mockRejectedValue("string error");
 
 		await run();
@@ -502,7 +473,6 @@ describe("main run()", () => {
 	});
 
 	it("calls setFailed when readVersionFile throws", async () => {
-		const { inputs } = setupDefaultMocks();
 		inputs["flutter-version-file"] = "pubspec.yaml";
 		vi.mocked(readVersionFile).mockImplementation(() => {
 			throw new Error("pubspec.yaml does not contain environment.flutter");
