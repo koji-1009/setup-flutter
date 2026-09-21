@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { restoreCache, saveCache } from "@actions/cache";
 import { info, warning } from "@actions/core";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	getPubCachePaths,
 	isValidLocalSdk,
@@ -146,10 +146,6 @@ describe("isValidLocalSdk", () => {
 });
 
 describe("restoreSdkCache", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("returns true on cache hit", async () => {
 		// First existsSync call is the pre-restore local check (miss), the
 		// second validates the restored content (valid).
@@ -215,10 +211,6 @@ describe("restoreSdkCache", () => {
 });
 
 describe("saveSdkCache", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("saves cache successfully", async () => {
 		vi.mocked(saveCache).mockResolvedValue(1);
 		await saveSdkCache("/opt/flutter", "key1");
@@ -280,10 +272,6 @@ describe("getPubCachePaths", () => {
 });
 
 describe("restorePubCache", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("returns true on cache hit", async () => {
 		vi.mocked(restoreCache).mockResolvedValue("key");
 		const result = await restorePubCache(["/pub-cache"], "key");
@@ -305,10 +293,6 @@ describe("restorePubCache", () => {
 });
 
 describe("savePubCache", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("saves cache when directory is not empty", async () => {
 		vi.mocked(existsSync).mockReturnValue(true);
 		vi.mocked(readdirSync).mockReturnValue(["file1"] as unknown as ReturnType<

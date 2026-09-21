@@ -91,10 +91,6 @@ describe("resolveGitRef (original repo + manifest)", () => {
 });
 
 describe("resolveGitRef (fork)", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("resolves branch from ls-remote", async () => {
 		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
 			if (options?.listeners?.stdout) {
@@ -180,10 +176,6 @@ describe("resolveGitRef (fork)", () => {
 });
 
 describe("resolveGitVersion (original repo + manifest)", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("resolves a range to the newest matching tagged version", async () => {
 		const result = await resolveGitVersion(
 			"https://github.com/flutter/flutter.git",
@@ -264,10 +256,6 @@ describe("resolveGitVersion (original repo + manifest)", () => {
 });
 
 describe("resolveGitVersion (fork via ls-remote --tags)", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	function mockTags(output: string) {
 		vi.mocked(exec).mockImplementation(async (_cmd, _args, options) => {
 			if (options?.listeners?.stdout) {
@@ -479,10 +467,6 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 });
 
 describe("resolveGit (dispatch)", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("routes range/constraint specs to version resolution", async () => {
 		const result = await resolveGit(
 			"https://github.com/flutter/flutter.git",
@@ -589,7 +573,6 @@ describe("installFromGit", () => {
 	}
 
 	beforeEach(() => {
-		vi.clearAllMocks();
 		mockExecWithHead(FULL_HASH);
 	});
 
