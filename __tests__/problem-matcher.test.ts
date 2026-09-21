@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { info, warning } from "@actions/core";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { registerProblemMatcher } from "../src/problem-matcher";
 
 vi.mock("@actions/core");
@@ -10,10 +10,8 @@ vi.mock("@actions/core");
 // lookup walks the real tree unless a test says otherwise.
 vi.mock("node:fs", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("node:fs")>();
-	return { ...actual, existsSync: vi.fn() };
+	return { ...actual, existsSync: vi.fn(actual.existsSync) };
 });
-
-const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
 
 type MatcherPattern = {
 	regexp: string;
@@ -288,10 +286,6 @@ describe("flutter-analyzer.json", () => {
 });
 
 describe("registerProblemMatcher()", () => {
-	beforeEach(() => {
-		vi.mocked(existsSync).mockImplementation(realFs.existsSync);
-	});
-
 	// GITHUB_ACTION_PATH is not set for a JavaScript action, so the definition is
 	// found by walking up from the module: one level from src here, two from the
 	// bundle in dist/setup on a runner.

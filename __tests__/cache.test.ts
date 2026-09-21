@@ -26,6 +26,10 @@ vi.mock("node:fs", async (importOriginal) => {
 	};
 });
 
+afterEach(() => {
+	vi.unstubAllEnvs();
+});
+
 const fixturesDir = join(__dirname, "fixtures");
 
 describe("sdkCacheKey", () => {
@@ -69,10 +73,6 @@ describe("sdkCacheKey", () => {
 });
 
 describe("sdkCachePath", () => {
-	afterEach(() => {
-		vi.unstubAllEnvs();
-	});
-
 	it("returns release cache path", () => {
 		const result = sdkCachePath("3.29.0", "stable", "x64");
 		expect(result).toContain("flutter");
@@ -121,10 +121,6 @@ describe("sdkCachePath", () => {
 });
 
 describe("isValidLocalSdk", () => {
-	afterEach(() => {
-		vi.mocked(existsSync).mockReset();
-	});
-
 	it("returns true when flutter binary exists", () => {
 		vi.mocked(existsSync).mockReturnValue(true);
 		expect(isValidLocalSdk("/opt/flutter")).toBe(true);

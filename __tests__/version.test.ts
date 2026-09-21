@@ -15,8 +15,12 @@ import {
 vi.mock("@actions/http-client");
 vi.mock("@actions/core");
 vi.mock("node:timers/promises", () => ({
-	setTimeout: vi.fn().mockResolvedValue(undefined),
+	setTimeout: vi.fn(() => Promise.resolve()),
 }));
+
+afterEach(() => {
+	vi.unstubAllEnvs();
+});
 
 const linuxFixture: FlutterManifest = JSON.parse(
 	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),
@@ -464,10 +468,6 @@ function mockGetJson(getJson: Mock) {
 }
 
 describe("fetchManifest", () => {
-	afterEach(() => {
-		vi.unstubAllEnvs();
-	});
-
 	it("fetches and returns manifest", async () => {
 		mockGetJson(
 			vi.fn().mockResolvedValue({

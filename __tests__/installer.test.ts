@@ -13,7 +13,7 @@ vi.mock("@actions/tool-cache");
 vi.mock("@actions/core");
 vi.mock("@actions/io");
 vi.mock("node:timers/promises", () => ({
-	setTimeout: vi.fn().mockResolvedValue(undefined),
+	setTimeout: vi.fn(() => Promise.resolve()),
 }));
 
 // Create a known buffer and compute its SHA-256
