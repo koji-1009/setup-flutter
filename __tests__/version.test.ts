@@ -491,6 +491,16 @@ describe("fetchManifest", () => {
 		);
 	});
 
+	it("keeps a base_url that is not on googleapis.com even with FLUTTER_STORAGE_BASE_URL", async () => {
+		vi.stubEnv("FLUTTER_STORAGE_BASE_URL", "https://mirror.example.com");
+		const manifest = JSON.parse(JSON.stringify(linuxFixture));
+		manifest.base_url = "https://other.example.com/releases";
+		mockGetJson(vi.fn().mockResolvedValue({ result: manifest }));
+
+		const result = await fetchManifest("linux");
+		expect(result.base_url).toBe("https://other.example.com/releases");
+	});
+
 	it("throws when result is null", async () => {
 		const getJson = vi.fn().mockResolvedValue({ result: null });
 		mockGetJson(getJson);
@@ -502,19 +512,26 @@ describe("fetchManifest", () => {
 		expect(getJson).toHaveBeenCalledTimes(1);
 	});
 
-	it("retries on HTTP 500 and succeeds on next attempt", async () => {
-		const getJson = vi
-			.fn()
-			.mockRejectedValueOnce(
-				Object.assign(new Error("Failed request: (500)"), { statusCode: 500 }),
-			)
-			.mockResolvedValue({ result: JSON.parse(JSON.stringify(linuxFixture)) });
-		mockGetJson(getJson);
+	it.each([500, 429, 408])(
+		"retries on HTTP %i and succeeds on next attempt",
+		async (statusCode) => {
+			const getJson = vi
+				.fn()
+				.mockRejectedValueOnce(
+					Object.assign(new Error(`Failed request: (${statusCode})`), {
+						statusCode,
+					}),
+				)
+				.mockResolvedValue({
+					result: JSON.parse(JSON.stringify(linuxFixture)),
+				});
+			mockGetJson(getJson);
 
-		const result = await fetchManifest("linux");
-		expect(result.releases.length).toBeGreaterThan(0);
-		expect(getJson).toHaveBeenCalledTimes(2);
-	});
+			const result = await fetchManifest("linux");
+			expect(result.releases.length).toBeGreaterThan(0);
+			expect(getJson).toHaveBeenCalledTimes(2);
+		},
+	);
 
 	it("retries on network error and throws after exhausting attempts", async () => {
 		const getJson = vi.fn().mockRejectedValue(new Error("ECONNRESET"));

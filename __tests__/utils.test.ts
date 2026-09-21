@@ -112,6 +112,11 @@ describe("getStorageBaseUrl", () => {
 		vi.stubEnv("FLUTTER_STORAGE_BASE_URL", "https://mirror.example.com");
 		expect(getStorageBaseUrl()).toBe("https://mirror.example.com");
 	});
+
+	it("strips a trailing slash from the custom URL", () => {
+		vi.stubEnv("FLUTTER_STORAGE_BASE_URL", "https://mirror.example.com/");
+		expect(getStorageBaseUrl()).toBe("https://mirror.example.com");
+	});
 });
 
 describe("getManifestUrl", () => {
