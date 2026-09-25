@@ -207,7 +207,7 @@ The intro bullets above are backed by a consistent design: every artifact this a
 
 ## Blog Post
 
-[Why I Built a New GitHub Action for Flutter](https://koji-1009.medium.com/why-i-built-a-new-github-action-for-flutter-592c24e96a55) — design decisions and motivation behind this action.
+[Why I Built a New GitHub Action for Flutter](https://blog.koji-1009.com/posts/why-i-built-a-new-github-action-for-flutter/) — design decisions and motivation behind this action.
 
 ## Acknowledgments
 
