@@ -2,11 +2,11 @@ import { readFileSync } from "node:fs";
 import { build } from "esbuild";
 
 const actionYml = readFileSync("action.yml", "utf8");
-const match = actionYml.match(/using:\s*'node(\d+)'/);
+const match = actionYml.match(/using:\s*(['"])node(\d+)\1/);
 if (!match) {
 	throw new Error("Could not find node version in action.yml");
 }
-const target = `node${match[1]}`;
+const target = `node${match[2]}`;
 
 const shared = {
 	bundle: true,

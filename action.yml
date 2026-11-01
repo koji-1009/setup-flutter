@@ -1,72 +1,72 @@
-name: 'Setup Flutter'
-description: 'Set up Flutter SDK for GitHub Actions'
-author: 'koji-1009'
+name: "Setup Flutter"
+description: "Set up Flutter SDK for GitHub Actions"
+author: "koji-1009"
 
 inputs:
   flutter-version:
-    description: 'Flutter SDK version (e.g. 3.29.0, 3.x, >=3.29.0 <4.0.0)'
+    description: "Flutter SDK version (e.g. 3.29.0, 3.x, >=3.29.0 <4.0.0)"
     required: false
-    default: ''
+    default: ""
   flutter-version-file:
-    description: 'Path to pubspec.yaml, pubspec.yml, or .fvmrc'
+    description: "Path to pubspec.yaml, pubspec.yml, or .fvmrc"
     required: false
-    default: ''
+    default: ""
   channel:
-    description: 'Release channel: stable, beta, or master'
+    description: "Release channel: stable, beta, or master"
     required: false
-    default: 'stable'
+    default: "stable"
   architecture:
-    description: 'CPU architecture: x64 or arm64 (auto-detected if omitted)'
+    description: "CPU architecture: x64 or arm64 (auto-detected if omitted)"
     required: false
   fvm-flavor:
-    description: 'FVM flavor name'
+    description: "FVM flavor name"
     required: false
-    default: ''
+    default: ""
   cache-sdk:
-    description: 'Cache Flutter SDK'
+    description: "Cache Flutter SDK"
     required: false
-    default: 'true'
+    default: "true"
   cache-pub:
-    description: 'Cache pub dependencies (requires pubspec.lock)'
+    description: "Cache pub dependencies (requires pubspec.lock)"
     required: false
-    default: 'true'
+    default: "true"
   git-source:
-    description: 'Install method: release or git'
+    description: "Install method: release or git"
     required: false
-    default: 'release'
+    default: "release"
   git-source-url:
-    description: 'Git repository URL'
+    description: "Git repository URL"
     required: false
-    default: 'https://github.com/flutter/flutter.git'
+    default: "https://github.com/flutter/flutter.git"
   dry-run:
-    description: 'Only resolve version, do not install'
+    description: "Only resolve version, do not install"
     required: false
-    default: 'false'
+    default: "false"
   problem-matcher:
-    description: 'Register a problem matcher for flutter analyze and dart analyze'
+    description: "Register a problem matcher for flutter analyze and dart analyze"
     required: false
-    default: 'true'
+    default: "true"
 
 outputs:
   flutter-version:
-    description: 'Installed Flutter version'
+    description: "Installed Flutter version"
   dart-version:
-    description: 'Included Dart SDK version'
+    description: "Included Dart SDK version"
   channel:
-    description: 'Resolved channel'
+    description: "Resolved channel"
   cache-sdk-hit:
-    description: 'Whether SDK cache was restored'
+    description: "Whether SDK cache was restored"
   cache-pub-hit:
-    description: 'Whether pub cache was restored'
+    description: "Whether pub cache was restored"
   architecture:
-    description: 'Resolved CPU architecture'
+    description: "Resolved CPU architecture"
 
 branding:
-  icon: 'download-cloud'
-  color: 'green'
+  icon: "download-cloud"
+  color: "green"
 
 runs:
-  using: 'node24'
-  main: 'dist/setup/index.js'
-  post: 'dist/post/index.js'
+  using: "node24"
+  main: "dist/setup/index.js"
+  post: "dist/post/index.js"
   post-if: always()

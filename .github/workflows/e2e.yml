@@ -48,7 +48,7 @@ jobs:
       - name: Setup Flutter (exact version)
         uses: ./
         with:
-          flutter-version: '3.29.0'
+          flutter-version: "3.29.0"
           channel: stable
 
       - run: flutter --version

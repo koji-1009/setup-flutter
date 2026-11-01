@@ -30,11 +30,6 @@
 			"quoteStyle": "double"
 		}
 	},
-	"yaml": {
-		"formatter": {
-			"quoteStyle": "single"
-		}
-	},
 	"assist": {
 		"enabled": true,
 		"actions": {

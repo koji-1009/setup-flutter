@@ -31,7 +31,7 @@ Zero configuration installs the latest stable Flutter SDK with caching enabled.
 ```yaml
 - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
-    flutter-version: '3.41.0'
+    flutter-version: "3.41.0"
 ```
 
 Supports exact versions, ranges (`3.x`, `3.41.x`), and constraints (`>=3.41.0 <4.0.0`).
@@ -139,7 +139,7 @@ Resolve version without installing. Useful for checking available versions in CI
 - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   id: flutter
   with:
-    flutter-version: '3.x'
+    flutter-version: "3.x"
     dry-run: true
 - run: echo "${{ steps.flutter.outputs.flutter-version }}"
 ```
@@ -159,7 +159,7 @@ Install from a git repository instead of release archives:
 - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
   with:
     git-source: git
-    flutter-version: '3.x'
+    flutter-version: "3.x"
 
 # Custom fork
 - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
