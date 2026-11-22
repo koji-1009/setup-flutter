@@ -47,6 +47,12 @@ describe("isOriginalRepo", () => {
 			false,
 		);
 	});
+
+	it("strips only a trailing .git", () => {
+		expect(isOriginalRepo("https://github.com/flutter.git/flutter")).toBe(
+			false,
+		);
+	});
 });
 
 describe("resolveGitRef (original repo + manifest)", () => {
@@ -81,6 +87,16 @@ describe("resolveGitRef (original repo + manifest)", () => {
 		expect(result.version).toBe("3.27.0");
 	});
 
+	it("resolves a short commit hash prefix from manifest", async () => {
+		const result = await resolveGitRef(
+			"https://github.com/flutter/flutter.git",
+			"8495dee",
+			fixture,
+		);
+		expect(result.commitHash).toBe("8495dee1fd4aacbe9de707e7581203232f591b2f");
+		expect(result.version).toBe("3.27.0");
+	});
+
 	it("falls back to ls-remote for master (not in current_release)", async () => {
 		mockLsRemote("abc123def456\trefs/heads/master\n");
 
@@ -102,6 +118,16 @@ describe("resolveGitRef (fork)", () => {
 			"my-branch",
 		);
 		expect(result.commitHash).toBe("deadbeef1234");
+		expect(exec).toHaveBeenCalledWith(
+			"git",
+			["ls-remote", "https://github.com/user/flutter-fork.git"],
+			expect.objectContaining({
+				env: expect.objectContaining({
+					GIT_HTTP_LOW_SPEED_LIMIT: "1000",
+					GIT_HTTP_LOW_SPEED_TIME: "60",
+				}),
+			}),
+		);
 	});
 
 	it("resolves tag from ls-remote", async () => {
@@ -123,6 +149,7 @@ describe("resolveGitRef (fork)", () => {
 			fullHash,
 		);
 		expect(result.commitHash).toBe(fullHash);
+		expect(warning).not.toHaveBeenCalled();
 	});
 
 	it("returns short hash with warning when not found via ls-remote", async () => {
@@ -134,7 +161,8 @@ describe("resolveGitRef (fork)", () => {
 		);
 		expect(result.commitHash).toBe("abc1234");
 		expect(warning).toHaveBeenCalledWith(
-			expect.stringContaining("short commit hash"),
+			"Ref 'abc1234' looks like a short commit hash but could not be verified via ls-remote. " +
+				"If this is a typo, the subsequent git clone will fail.",
 		);
 	});
 
@@ -300,7 +328,10 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 				"2222222222222222222222222222222222222222\trefs/tags/latest",
 				"",
 				"malformed-line-without-a-tab",
+				"5".repeat(40),
 				"3333333333333333333333333333333333333333\trefs/heads/main",
+				// Outside refs/tags/ even though stripping the prefix length leaves a version.
+				`${"6".repeat(40)}\trefs/pull/3.99.0`,
 				"4444444444444444444444444444444444444444\trefs/tags/3.29.0",
 			].join("\n"),
 		);
@@ -317,6 +348,9 @@ describe("resolveGitVersion (fork via ls-remote --tags)", () => {
 		mockLsRemote(
 			[
 				"garbage\trefs/tags/3.30.0",
+				// A full hex hash with extra characters around it is not a hash.
+				`x${"1".repeat(40)}\trefs/tags/3.31.0`,
+				`${"2".repeat(40)}x\trefs/tags/3.32.0`,
 				"4444444444444444444444444444444444444444\trefs/tags/3.29.0",
 			].join("\n"),
 		);
@@ -496,6 +530,21 @@ describe("resolveGit (dispatch)", () => {
 			),
 		).rejects.toThrow("is not a valid commit hash");
 	});
+
+	it.each(["zzzzabcdef1", "abcdef1zzzz"])(
+		"throws when the resolved hash %s is only partly hex",
+		async (hash) => {
+			mockLsRemote(`${hash}\trefs/heads/my-branch\n`);
+
+			await expect(
+				resolveGit(
+					"https://github.com/user/flutter-fork.git",
+					{ type: "ref", ref: "my-branch" },
+					"stable",
+				),
+			).rejects.toThrow("is not a valid commit hash");
+		},
+	);
 });
 
 describe("installFromGit", () => {
@@ -611,7 +660,10 @@ describe("installFromGit", () => {
 				"/opt/flutter",
 				FULL_HASH,
 			),
-		).rejects.toThrow("does not match resolved commit");
+		).rejects.toThrow(
+			`Cloned HEAD 1111111111111111111111111111111111111111 does not match resolved commit ${FULL_HASH} for ref 'stable'. ` +
+				"The remote may have been updated during installation; retry the job.",
+		);
 	});
 
 	it("skips HEAD verification for short hash commitHash", async () => {
@@ -627,7 +679,7 @@ describe("installFromGit", () => {
 		expect(revParseCall).toBeUndefined();
 	});
 
-	it("throws when command times out", async () => {
+	it("throws when the clone exceeds 10 minutes", async () => {
 		vi.useFakeTimers();
 		try {
 			vi.mocked(exec).mockReturnValue(new Promise(() => {}));
@@ -638,10 +690,78 @@ describe("installFromGit", () => {
 				"/opt/flutter",
 				"abc123def4567890abc123def4567890abc123de",
 			);
+			let settled = false;
+			promise.catch(() => {}).finally(() => (settled = true));
 
-			const assertion = expect(promise).rejects.toThrow("Command timed out");
-			await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+			const assertion = expect(promise).rejects.toThrow(
+				"Command timed out after 600s: git clone --depth 1 --branch stable https://github.com/flutter/flutter.git /opt/flutter",
+			);
+			await vi.advanceTimersByTimeAsync(10 * 60 * 1000 - 1);
+			expect(settled).toBe(false);
+			await vi.advanceTimersByTimeAsync(1);
 			await assertion;
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("throws when flutter precache exceeds 10 minutes", async () => {
+		vi.useFakeTimers();
+		try {
+			vi.mocked(exec).mockImplementation((cmd) =>
+				cmd === "git" ? Promise.resolve(0) : new Promise(() => {}),
+			);
+
+			const promise = installFromGit(
+				"https://github.com/flutter/flutter.git",
+				"stable",
+				"/opt/flutter",
+				"abc1234",
+			);
+			let settled = false;
+			promise.catch(() => {}).finally(() => (settled = true));
+
+			const assertion = expect(promise).rejects.toThrow(
+				`Command timed out after 600s: ${join("/opt/flutter", "bin", "flutter")} precache`,
+			);
+			await vi.advanceTimersByTimeAsync(10 * 60 * 1000 - 1);
+			expect(settled).toBe(false);
+			await vi.advanceTimersByTimeAsync(1);
+			await assertion;
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	// A pending timeout timer keeps the Node process alive after the action is done.
+	it("clears the timeout timer when a command finishes", async () => {
+		vi.useFakeTimers();
+		try {
+			await installFromGit(
+				"https://github.com/flutter/flutter.git",
+				"stable",
+				"/opt/flutter",
+				FULL_HASH,
+			);
+			expect(vi.getTimerCount()).toBe(0);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("clears the timeout timer when a command fails", async () => {
+		vi.useFakeTimers();
+		try {
+			vi.mocked(exec).mockRejectedValue(new Error("git clone failed"));
+			await expect(
+				installFromGit(
+					"https://github.com/flutter/flutter.git",
+					"stable",
+					"/opt/flutter",
+					FULL_HASH,
+				),
+			).rejects.toThrow("git clone failed");
+			expect(vi.getTimerCount()).toBe(0);
 		} finally {
 			vi.useRealTimers();
 		}
@@ -684,7 +804,7 @@ describe("installFromGit", () => {
 		const precacheCall = calls.find(
 			(c: unknown[]) => typeof c[0] === "string" && c[0].includes("flutter"),
 		);
-		expect(precacheCall).toBeDefined();
+		expect(precacheCall?.[0]).toBe(join("/opt/flutter", "bin", "flutter"));
 		expect(precacheCall?.[1]).toEqual(["precache"]);
 	});
 });

@@ -1,4 +1,5 @@
 node_modules
 coverage
+.mutator
 .vscode
 .DS_Store

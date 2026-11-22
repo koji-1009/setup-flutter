@@ -76,10 +76,11 @@ describe("sdkCachePath", () => {
 	});
 
 	it("returns git cache path", () => {
+		vi.stubEnv("RUNNER_TOOL_CACHE", "/custom/cache");
 		const result = sdkCachePath("3.29.0", "stable", "x64", {
 			commitHash: "abc1234567890",
 		});
-		expect(result).toContain("git-abc1234-x64");
+		expect(result).toBe(join("/custom/cache", "flutter", "git-abc1234-x64"));
 	});
 
 	it("throws when version contains a path separator", () => {
@@ -172,6 +173,8 @@ describe("restoreSdkCache", () => {
 			"flutter-sdk-linux-stable-3.29.0-x64",
 		);
 		expect(result).toBe(false);
+		// A miss is not a corrupted restore, so it must not warn about one.
+		expect(warning).not.toHaveBeenCalled();
 	});
 
 	it("returns false and warns on error", async () => {
@@ -278,7 +281,9 @@ describe("restorePubCache", () => {
 		vi.mocked(restoreCache).mockRejectedValue(new Error("error"));
 		const result = await restorePubCache(["/pub-cache"], "key");
 		expect(result).toBe(false);
-		expect(warning).toHaveBeenCalled();
+		expect(warning).toHaveBeenCalledWith(
+			"Pub cache restore failed: Error: error",
+		);
 	});
 });
 

@@ -10,6 +10,7 @@
 			"**",
 			"!!**/dist",
 			"!.claude",
+			"!mutator.accepted.json",
 			"!__tests__/fixtures/*-invalid.*",
 			"!__tests__/fixtures/**/*.yaml",
 			"!__tests__/fixtures/**/*.yml"

@@ -1,0 +1,98 @@
+{
+  "16h3gdjcsep": {
+    "reason": "the regexes above guarantee at least two parts, and in the two-part form parts[1] is 'x'",
+    "where": "src/version.ts:67:7 parts.length >= 2 -> true"
+  },
+  "19v3xcuwsv8": {
+    "reason": "only affects whitespace at the ends inside the quotes, which pubspec version constraints do not have",
+    "where": "src/version-file.ts:39:13 quoteMatch[2].trim() -> quoteMatch[2]"
+  },
+  "1c1d4e1is45": {
+    "reason": "differs only for 'environment :' with a space before the colon or another top-level key starting with 'environment', which pubspec does not use",
+    "where": "src/version-file.ts:20:7 /^environment\\s*:/ -> /^environment\\S*:/"
+  },
+  "1e7qqkem430": {
+    "reason": "replace() is a no-op when base_url lacks the default storage URL, and getStorageBaseUrl() returns that default when FLUTTER_STORAGE_BASE_URL is unset",
+    "where": "src/version.ts:129:6 customBaseUrl && manifest.base_url.includes(\"googleapis.com… -> true"
+  },
+  "1h2z2dskka2": {
+    "reason": "gitRef is assigned in the git branch before its only use, which is also in git mode",
+    "where": "src/main.ts:96:16 \"\" -> \"Stryker was here!\""
+  },
+  "1lm79lw1112": {
+    "reason": "blank and indented comment lines fall through to the next line without this check: they neither close the block nor match the flutter key",
+    "where": "src/version-file.ts:28:20 \"\" -> \"Stryker was here!\""
+  },
+  "1m9vl8pvpxr": {
+    "reason": "the captured value is trimmed, so how much whitespace after the colon the regex consumes does not matter",
+    "where": "src/version-file.ts:34:25 /^\\s+flutter\\s*:\\s*(.+)/ -> /^\\s+flutter\\s*:\\s(.+)/"
+  },
+  "1mc9eam2lpq": {
+    "reason": "tags of equal version (e.g. v3.27.0 and 3.27.0) are interchangeable; keeping the first or the last one are both correct",
+    "where": "src/git-source.ts:160:16 rcompare(version, best.version) < 0 -> rcompare(version, best.version) <= 0"
+  },
+  "1q6kfbwiiy3": {
+    "reason": "differs only when ' flutter:' appears mid-line (e.g. inside a comment) before the flutter key, which pubspec does not contain",
+    "where": "src/version-file.ts:34:25 /^\\s+flutter\\s*:\\s*(.+)/ -> /\\s+flutter\\s*:\\s*(.+)/"
+  },
+  "1wd03amztlw": {
+    "reason": "the outer check only skips computing elapsed and speed; the while loop below has the same condition and logs nothing when it is false",
+    "where": "src/installer.ts:61:11 nextThreshold <= percent -> true"
+  },
+  "1xikkzsr8ad": {
+    "reason": "the captured value is trimmed, so how much whitespace after the colon the regex consumes does not matter",
+    "where": "src/version-file.ts:34:25 /^\\s+flutter\\s*:\\s*(.+)/ -> /^\\s+flutter\\s*:\\S*(.+)/"
+  },
+  "1xug41p4e2u": {
+    "reason": "git ls-remote output is LF-separated and a trailing empty line matches no ref, so trimming the output does not change the result",
+    "where": "src/git-source.ts:75:9 output.trim() -> output"
+  },
+  "21wwk8zg23p": {
+    "reason": "replace() is a no-op when base_url lacks the default storage URL, and getStorageBaseUrl() returns that default when FLUTTER_STORAGE_BASE_URL is unset",
+    "where": "src/version.ts:129:6 customBaseUrl && manifest.base_url.includes(\"googleapis.com… -> (customBaseUrl || manifest.base_url.includes(\"googleapis.co…"
+  },
+  "22har6vg4n2": {
+    "reason": "a value starting with # (flutter: # comment) is a YAML null, which pubspec does not use for the flutter constraint",
+    "where": "src/version-file.ts:42:9 commentIndex >= 0 -> commentIndex > 0"
+  },
+  "2b79rha9xgh": {
+    "reason": "the regexes above guarantee at least two parts, and in the two-part form parts[1] is 'x'",
+    "where": "src/version.ts:67:7 parts.length >= 2 -> parts.length > 2"
+  },
+  "2dowqsdj8vu": {
+    "reason": "blank and indented comment lines fall through to the next line without this check: they neither close the block nor match the flutter key",
+    "where": "src/version-file.ts:27:20 line.trim() -> line"
+  },
+  "2fe2g22bob5": {
+    "reason": "git mode installs with installFromGit, which never reads downloadUrl or sha256",
+    "where": "src/main.ts:131:13 \"\" -> \"Stryker was here!\""
+  },
+  "58ajl6fioo": {
+    "reason": "replace() is a no-op when base_url lacks the default storage URL, and getStorageBaseUrl() returns that default when FLUTTER_STORAGE_BASE_URL is unset",
+    "where": "src/version.ts:129:50 \"googleapis.com\" -> \"\""
+  },
+  "bsfip4uu3z": {
+    "reason": "the pattern is not end-anchored, so one trailing digit matches the same inputs as one or more",
+    "where": "src/version.ts:73:6 /^\\d+\\.\\d+\\.\\d+/ -> /^\\d+\\.\\d+\\.\\d/"
+  },
+  "bwzsufzb8o": {
+    "reason": "git ls-remote emits ^{} only as the suffix of a peeled tag line",
+    "where": "src/git-source.ts:138:58 /\\^\\{\\}$/ -> /\\^\\{\\}/"
+  },
+  "dhp9l2fqli": {
+    "reason": "blank and indented comment lines fall through to the next line without this check: they neither close the block nor match the flutter key",
+    "where": "src/version-file.ts:28:8 trimmed === \"\" -> false"
+  },
+  "j0v2bru6jk": {
+    "reason": "differs only for 'flutter :' with a space before the colon or another environment key starting with 'flutter', which pubspec does not use",
+    "where": "src/version-file.ts:34:25 /^\\s+flutter\\s*:\\s*(.+)/ -> /^\\s+flutter\\S*:\\s*(.+)/"
+  },
+  "ji4ig962o2": {
+    "reason": "a blank line is also skipped by the FULL_HASH_PATTERN check on the next line",
+    "where": "src/git-source.ts:134:7 !line -> false"
+  },
+  "l7gvenm9y1": {
+    "reason": "git mode installs with installFromGit, which never reads downloadUrl or sha256",
+    "where": "src/main.ts:129:18 \"\" -> \"Stryker was here!\""
+  }
+}

@@ -48,6 +48,38 @@ describe("post run()", () => {
 			installSuccess: "true",
 			cacheSdk: "true",
 			sdkCacheMiss: "false",
+			sdkCacheKey: "flutter-sdk-linux-stable-3.29.3-x64",
+			sdkCachePath: "/opt/flutter",
+			cachePub: "false",
+			pubCacheMiss: "false",
+		});
+		await run();
+
+		expect(saveSdkCache).not.toHaveBeenCalled();
+	});
+
+	it("does not save SDK cache when cacheSdk is false", async () => {
+		setupState({
+			installSuccess: "true",
+			cacheSdk: "false",
+			sdkCacheMiss: "true",
+			sdkCacheKey: "flutter-sdk-linux-stable-3.29.3-x64",
+			sdkCachePath: "/opt/flutter",
+			cachePub: "false",
+			pubCacheMiss: "false",
+		});
+		await run();
+
+		expect(saveSdkCache).not.toHaveBeenCalled();
+	});
+
+	it("skips SDK save when only the cache path is missing", async () => {
+		setupState({
+			installSuccess: "true",
+			cacheSdk: "true",
+			sdkCacheMiss: "true",
+			sdkCacheKey: "flutter-sdk-linux-stable-3.29.3-x64",
+			sdkCachePath: "",
 			cachePub: "false",
 			pubCacheMiss: "false",
 		});
@@ -81,10 +113,50 @@ describe("post run()", () => {
 			sdkCacheMiss: "false",
 			cachePub: "true",
 			pubCacheMiss: "false",
+			pubCacheKey: "flutter-pub-linux-abc123",
+			pubCachePath: "/home/runner/.pub-cache",
 		});
 		await run();
 
 		expect(savePubCache).not.toHaveBeenCalled();
+	});
+
+	it("does not save pub cache when cachePub is false", async () => {
+		setupState({
+			installSuccess: "true",
+			cacheSdk: "false",
+			sdkCacheMiss: "false",
+			cachePub: "false",
+			pubCacheMiss: "true",
+			pubCacheKey: "flutter-pub-linux-abc123",
+			pubCachePath: "/home/runner/.pub-cache",
+		});
+		await run();
+
+		expect(savePubCache).not.toHaveBeenCalled();
+	});
+
+	it("skips pub save when only the cache path is missing", async () => {
+		setupState({
+			installSuccess: "true",
+			cacheSdk: "false",
+			sdkCacheMiss: "false",
+			cachePub: "true",
+			pubCacheMiss: "true",
+			pubCacheKey: "flutter-pub-linux-abc123",
+			pubCachePath: "",
+		});
+		await run();
+
+		expect(savePubCache).not.toHaveBeenCalled();
+	});
+
+	it("runs when the module is loaded", async () => {
+		vi.resetModules();
+		const core = await import("@actions/core");
+		await import("../src/post");
+
+		expect(core.getState).toHaveBeenCalledWith("installSuccess");
 	});
 
 	it("skips SDK save when state keys are empty", async () => {
