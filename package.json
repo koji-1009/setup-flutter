@@ -6,6 +6,7 @@
 		"build": "tsc",
 		"test": "vitest run --reporter=verbose",
 		"test:coverage": "vitest run --coverage",
+		"mutation": "mutator",
 		"lint": "biome check .",
 		"format": "biome check --write .",
 		"package": "node build.mjs"
@@ -27,6 +28,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.6.8",
+		"@mizchi/mutator": "0.5.3",
 		"@types/node": "^26.6.6",
 		"@types/semver": "^7.8.0",
 		"@vitest/coverage-v8": "^5.0.5",

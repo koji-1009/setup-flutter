@@ -148,6 +148,90 @@ describe("main run()", () => {
 		expect(setOutput).toHaveBeenCalledWith("cache-sdk-hit", "false");
 		expect(setOutput).toHaveBeenCalledWith("cache-pub-hit", "false");
 		expect(setOutput).toHaveBeenCalledWith("architecture", "x64");
+		expect(parseVersionSpec).toHaveBeenCalledWith("");
+		expect(readVersionFile).not.toHaveBeenCalled();
+		expect(warning).not.toHaveBeenCalled();
+		expect(sdkCachePath).toHaveBeenCalledWith(
+			"3.29.3",
+			"stable",
+			"x64",
+			undefined,
+		);
+		expect(sdkCacheKey).toHaveBeenCalledWith(
+			"linux",
+			"stable",
+			"3.29.3",
+			"x64",
+			undefined,
+		);
+		expect(pubCacheKey).toHaveBeenCalledWith("linux", "pubspec.lock");
+	});
+
+	it("runs when the module is loaded", async () => {
+		vi.resetModules();
+		const core = await import("@actions/core");
+		await import("../src/main");
+
+		expect(core.getInput).toHaveBeenCalledWith("flutter-version");
+	});
+
+	it("defaults the channel to stable when the input is empty", async () => {
+		inputs.channel = "";
+
+		await run();
+
+		expect(resolveFromManifest).toHaveBeenCalledWith(
+			defaultManifest,
+			{ type: "any" },
+			"stable",
+			"x64",
+		);
+	});
+
+	it("passes the channel input to the manifest lookup", async () => {
+		inputs.channel = "beta";
+
+		await run();
+
+		expect(resolveFromManifest).toHaveBeenCalledWith(
+			defaultManifest,
+			{ type: "any" },
+			"beta",
+			"x64",
+		);
+	});
+
+	it("defaults git-source to release when the input is empty", async () => {
+		inputs["git-source"] = "";
+
+		await run();
+
+		expect(setFailed).not.toHaveBeenCalled();
+		expect(installFromArchive).toHaveBeenCalled();
+	});
+
+	it("does not warn when only flutter-version is specified", async () => {
+		inputs["flutter-version"] = "3.29.0";
+		vi.mocked(parseVersionSpec).mockReturnValue({
+			type: "exact",
+			version: "3.29.0",
+		});
+
+		await run();
+
+		expect(warning).not.toHaveBeenCalled();
+	});
+
+	it("does not warn when the version's channel matches the channel input", async () => {
+		inputs["flutter-version"] = "stable";
+		vi.mocked(parseVersionSpec).mockReturnValue({
+			type: "channel",
+			channel: "stable",
+		});
+
+		await run();
+
+		expect(warning).not.toHaveBeenCalled();
 	});
 
 	// post.ts reads these names back, so they are the contract between the two.
@@ -243,6 +327,8 @@ describe("main run()", () => {
 		await run();
 
 		expect(restoreSdkCache).not.toHaveBeenCalled();
+		expect(installFromArchive).toHaveBeenCalled();
+		expect(setOutput).toHaveBeenCalledWith("cache-sdk-hit", "false");
 	});
 
 	it("skips pub cache when cache-pub is false", async () => {
@@ -252,6 +338,7 @@ describe("main run()", () => {
 
 		expect(pubCacheKey).not.toHaveBeenCalled();
 		expect(restorePubCache).not.toHaveBeenCalled();
+		expect(setOutput).toHaveBeenCalledWith("cache-pub-hit", "false");
 	});
 
 	it("registers the problem matcher by default", async () => {
@@ -351,6 +438,22 @@ describe("main run()", () => {
 		);
 		expect(installFromGit).toHaveBeenCalled();
 		expect(installFromArchive).not.toHaveBeenCalled();
+		// The git checkout carries no Dart version metadata.
+		expect(setOutput).toHaveBeenCalledWith("dart-version", "unknown");
+	});
+
+	it("uses git mode with the official repository when git-source-url is empty", async () => {
+		inputs["git-source"] = "git";
+		inputs["git-source-url"] = "";
+
+		await run();
+
+		expect(resolveGit).toHaveBeenCalledWith(
+			"https://github.com/flutter/flutter.git",
+			{ type: "any" },
+			"stable",
+			defaultManifest,
+		);
 	});
 
 	it("uses git mode forwards the spec and channel to resolveGit", async () => {

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Readable } from "node:stream";
+import { setTimeout as sleep } from "node:timers/promises";
 import { addPath, exportVariable, info, warning } from "@actions/core";
 import { HttpClient } from "@actions/http-client";
 import { mkdirP, mv, rmRF } from "@actions/io";
@@ -194,6 +195,25 @@ describe("installFromArchive", () => {
 		).rejects.toThrow(`Download failed: HTTP 404 for ${resolved.downloadUrl}`);
 	});
 
+	it("creates the HTTP client with the user agent and socket timeout", async () => {
+		await installFromArchive(resolved, "/opt/flutter", "linux");
+		expect(HttpClient).toHaveBeenCalledWith("setup-flutter", undefined, {
+			socketTimeout: 60_000,
+		});
+	});
+
+	it.each([199, 300])(
+		"throws when HTTP status %i is outside 2xx",
+		async (statusCode) => {
+			mockHttpGetWith(statusCode);
+			await expect(
+				installFromArchive(resolved, "/opt/flutter", "linux"),
+			).rejects.toThrow(
+				`Download failed: HTTP ${statusCode} for ${resolved.downloadUrl}`,
+			);
+		},
+	);
+
 	it("throws when HTTP status code is undefined", async () => {
 		mockHttpGetWith();
 		await expect(
@@ -284,8 +304,54 @@ describe("installFromArchive", () => {
 		const progressCalls = vi
 			.mocked(info)
 			.mock.calls.filter((c) => String(c[0]).includes("MB downloaded"));
-		expect(progressCalls).toHaveLength(1);
-		expect(progressCalls[0][0]).toContain("MB/s");
+		expect(progressCalls).toEqual([
+			["Download progress: 101.0 MB downloaded 0.0s 101.0 MB/s"],
+		]);
+	});
+
+	// Date.now() is read once when the download starts and again per progress line.
+	function mockElapsed(ms: number) {
+		vi.spyOn(Date, "now")
+			.mockReturnValueOnce(1_000_000)
+			.mockReturnValue(1_000_000 + ms);
+	}
+
+	it("reports elapsed time and speed with content-length", async () => {
+		const chunk = Buffer.alloc(4 * 1024 * 1024, "a");
+		const sha = createHash("sha256").update(chunk).digest("hex");
+		mockHttpGetWith(200, String(chunk.length), [chunk]);
+		mockElapsed(2000);
+		await installFromArchive(
+			{ ...resolved, sha256: sha },
+			"/opt/flutter",
+			"linux",
+		);
+
+		const progressCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("Download progress:"));
+		expect(progressCalls[0][0]).toBe(
+			"Download progress: 10% (4.0 MB / 4.0 MB) 2.0s 2.0 MB/s",
+		);
+	});
+
+	it("reports elapsed time and speed without content-length", async () => {
+		const chunk = Buffer.alloc(100 * 1024 * 1024, "a");
+		const sha = createHash("sha256").update(chunk).digest("hex");
+		mockHttpGetWith(200, undefined, [chunk]);
+		mockElapsed(2000);
+		await installFromArchive(
+			{ ...resolved, sha256: sha },
+			"/opt/flutter",
+			"linux",
+		);
+
+		const progressCalls = vi
+			.mocked(info)
+			.mock.calls.filter((c) => String(c[0]).includes("MB downloaded"));
+		expect(progressCalls).toEqual([
+			["Download progress: 100.0 MB downloaded 2.0s 50.0 MB/s"],
+		]);
 	});
 
 	it("moves flutter directory to sdkPath", async () => {
@@ -323,6 +389,17 @@ describe("download retry", () => {
 			expect(retryLogCount()).toBe(1);
 		},
 	);
+
+	it("waits 10 to 20 seconds before retrying", async () => {
+		mockHttpGetSequence(
+			{ statusCode: 500 },
+			{ statusCode: 200, contentLength: String(testBuffer.length) },
+		);
+		vi.spyOn(Math, "random").mockReturnValue(0.5);
+		await installFromArchive(resolved, "/opt/flutter", "linux");
+		// floor(0.5 * 11) + 10 = 15 seconds
+		expect(sleep).toHaveBeenCalledExactlyOnceWith(15_000);
+	});
 
 	it("does not retry on HTTP 404", async () => {
 		mockHttpGetWith(404);

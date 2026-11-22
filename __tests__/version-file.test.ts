@@ -1,3 +1,5 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readFvmrc, readPubspec, readVersionFile } from "../src/version-file";
@@ -16,8 +18,24 @@ describe("readPubspec", () => {
 		// A comment is not indented content, so it does not close the block.
 		{ file: "pubspec-column-zero-comment.yaml", expected: ">=3.29.0 <4.0.0" },
 		{ file: "pubspec-empty-quoted.yaml", expected: "" },
+		// Only the top-level environment block counts, not a nested key of the same name.
+		{ file: "pubspec-nested-environment.yaml", expected: ">=3.29.0 <4.0.0" },
+		// Quotes inside a comment are not a quoted value.
+		{ file: "pubspec-quoted-comment.yaml", expected: "3.29.0" },
 	])("reads '$expected' from $file", ({ file, expected }) => {
 		expect(readPubspec(join(fixturesDir, file))).toBe(expected);
+	});
+
+	// Written at test time: editors and git hooks commonly strip trailing whitespace from fixtures.
+	it("drops trailing whitespace after an unquoted value", () => {
+		const dir = mkdtempSync(join(tmpdir(), "setup-flutter-test-"));
+		try {
+			const file = join(dir, "pubspec.yaml");
+			writeFileSync(file, "name: test\nenvironment:\n  flutter: 3.29.0   \n");
+			expect(readPubspec(file)).toBe("3.29.0");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
 	it.each([
@@ -28,6 +46,11 @@ describe("readPubspec", () => {
 		},
 		{
 			file: "pubspec-invalid.yaml",
+			error: "does not contain environment.flutter",
+		},
+		// The environment block ends at the next top-level key.
+		{
+			file: "pubspec-flutter-outside-environment.yaml",
 			error: "does not contain environment.flutter",
 		},
 		{ file: "non-existent.yaml", error: /ENOENT/ },
@@ -67,6 +90,12 @@ describe("readFvmrc", () => {
 		expect(() =>
 			readFvmrc(join(fixturesDir, "fvmrc-flavors.json"), "nonexistent"),
 		).toThrow("FVM flavor 'nonexistent' not found");
+	});
+
+	it("throws when a flavor is requested from an fvmrc without flavors", () => {
+		expect(() =>
+			readFvmrc(join(fixturesDir, "fvmrc-basic.json"), "staging"),
+		).toThrow("FVM flavor 'staging' not found");
 	});
 
 	it("throws for invalid JSON", () => {

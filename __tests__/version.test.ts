@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { HttpClient } from "@actions/http-client";
 import { describe, expect, it, type Mock, vi } from "vitest";
 import {
@@ -44,7 +45,16 @@ describe("parseVersionSpec", () => {
 		{ input: "<=3.29.0", expected: { type: "constraint", range: "<=3.29.0" } },
 		{ input: "3.x", expected: { type: "range", major: 3 } },
 		{ input: "3.41.x", expected: { type: "range", major: 3, minor: 41 } },
+		{ input: "10.x", expected: { type: "range", major: 10 } },
+		{ input: "10.1.x", expected: { type: "range", major: 10, minor: 1 } },
+		// Only a whole input of digits and .x is an x-range; anything else is a ref.
+		{ input: "v3.x", expected: { type: "ref", ref: "v3.x" } },
+		{ input: "3.x-dev", expected: { type: "ref", ref: "3.x-dev" } },
+		{ input: "v3.27.x", expected: { type: "ref", ref: "v3.27.x" } },
+		{ input: "3.27.x-dev", expected: { type: "ref", ref: "3.27.x-dev" } },
+		{ input: "3-dev", expected: { type: "ref", ref: "3-dev" } },
 		{ input: "3.27.0", expected: { type: "exact", version: "3.27.0" } },
+		{ input: "10.0.0", expected: { type: "exact", version: "10.0.0" } },
 		{ input: "3.41.2", expected: { type: "exact", version: "3.41.2" } },
 		{
 			input: "3.29.0-0.1.pre",
@@ -72,8 +82,18 @@ describe("parseVersionSpec", () => {
 
 	it.each([
 		{ input: ">=abc", error: "Invalid version constraint '>=abc'" },
-		{ input: "3.4", error: "Ambiguous version '3.4': use '3.4.x'" },
-		{ input: "3", error: "Ambiguous version '3': use '3.x'" },
+		{
+			input: "3.4",
+			error:
+				"Ambiguous version '3.4': use '3.4.x' for the newest 3.4 release, a full version like '3.4.0', or a range such as '>=3.4'",
+		},
+		{
+			input: "3",
+			error:
+				"Ambiguous version '3': use '3.x' for the newest 3 release, a full version like '3.0.0', or a range such as '>=3'",
+		},
+		{ input: "10", error: "Ambiguous version '10'" },
+		{ input: "3.10", error: "Ambiguous version '3.10'" },
 	])("throws for '$input'", ({ input, error }) => {
 		expect(() => parseVersionSpec(input)).toThrow(error);
 	});
@@ -167,6 +187,39 @@ describe("findManifestVersion", () => {
 			"stable",
 		);
 		expect(result?.version).toBe("3.41.2");
+	});
+
+	it("ignores architecture (matches a release that only has an arm64 archive)", () => {
+		const manifest: FlutterManifest = {
+			base_url: "https://storage.googleapis.com/flutter_infra_release/releases",
+			current_release: { stable: "hash2" },
+			releases: [
+				{
+					hash: "hash2",
+					channel: "stable",
+					version: "3.42.0",
+					dart_sdk_version: "3.12.0",
+					dart_sdk_arch: "arm64",
+					release_date: "2026-02-01",
+					archive: "stable/macos/flutter_macos_arm64_3.42.0-stable.zip",
+					sha256: "arm64hash",
+				},
+				{
+					hash: "hash1",
+					channel: "stable",
+					version: "3.41.2",
+					dart_sdk_version: "3.11.0",
+					dart_sdk_arch: "x64",
+					release_date: "2026-01-01",
+					archive: "stable/macos/flutter_macos_3.41.2-stable.zip",
+					sha256: "x64hash",
+				},
+			],
+		};
+		expect(findManifestVersion(manifest, { type: "any" }, "stable")).toEqual({
+			version: "3.42.0",
+			hash: "hash2",
+		});
 	});
 
 	it("filters by channel", () => {
@@ -474,6 +527,20 @@ describe("fetchManifest", () => {
 		const result = await fetchManifest("linux");
 		expect(result.releases.length).toBeGreaterThan(0);
 		expect(result.base_url).toContain("flutter_infra_release");
+		expect(HttpClient).toHaveBeenCalledWith("setup-flutter");
+	});
+
+	it("waits 10 to 20 seconds before retrying", async () => {
+		const getJson = vi
+			.fn()
+			.mockRejectedValueOnce(new Error("ECONNRESET"))
+			.mockResolvedValue({ result: JSON.parse(JSON.stringify(linuxFixture)) });
+		mockGetJson(getJson);
+		vi.spyOn(Math, "random").mockReturnValue(0.5);
+
+		await fetchManifest("linux");
+		// floor(0.5 * 11) + 10 = 15 seconds
+		expect(sleep).toHaveBeenCalledExactlyOnceWith(15_000);
 	});
 
 	it("rewrites base_url when FLUTTER_STORAGE_BASE_URL is set", async () => {

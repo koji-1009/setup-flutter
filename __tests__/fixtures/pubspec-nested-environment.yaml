@@ -1,0 +1,6 @@
+name: test
+some_tool:
+  environment:
+    flutter: "1.0.0"
+environment:
+  flutter: ">=3.29.0 <4.0.0"
