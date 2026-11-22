@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { build } from "esbuild";
+import { rolldown } from "rolldown";
 
 const actionYml = readFileSync("action.yml", "utf8");
 const match = actionYml.match(/using:\s*(['"])node(\d+)\1/);
@@ -8,22 +8,21 @@ if (!match) {
 }
 const target = `node${match[2]}`;
 
-const shared = {
-	bundle: true,
-	platform: "node",
-	target,
-	format: "cjs",
-};
+async function bundle(input, file) {
+	const build = await rolldown({
+		input,
+		platform: "node",
+		transform: { target },
+	});
+	try {
+		// GitHub Actions runs one file per entry point, so nothing may be split out.
+		await build.write({ file, format: "cjs", codeSplitting: false });
+	} finally {
+		await build.close();
+	}
+}
 
 await Promise.all([
-	build({
-		...shared,
-		entryPoints: ["src/main.ts"],
-		outfile: "dist/setup/index.js",
-	}),
-	build({
-		...shared,
-		entryPoints: ["src/post.ts"],
-		outfile: "dist/post/index.js",
-	}),
+	bundle("src/main.ts", "dist/setup/index.js"),
+	bundle("src/post.ts", "dist/post/index.js"),
 ]);
