@@ -26,7 +26,7 @@ vi.mock("node:fs", async (importOriginal) => {
 	};
 });
 
-const fixturesDir = join(__dirname, "fixtures");
+const fixturesDir = join(import.meta.dirname, "fixtures");
 
 describe("sdkCacheKey", () => {
 	it("returns release cache key", () => {

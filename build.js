@@ -8,27 +8,17 @@ if (!match) {
 }
 const target = `node${match[2]}`;
 
-// Bundled through vite (already installed for vitest) so that the rolldown
-// version is always the one vite pins, instead of a second copy of our own.
 async function bundle(input, outDir) {
 	await build({
-		configFile: false,
-		logLevel: "warn",
-		// Bundle every dependency: the runner executes dist/ without node_modules.
-		ssr: { noExternal: true, target: "node" },
+		// The runner executes dist/ without node_modules, so bundle every dependency.
+		ssr: { noExternal: true },
 		build: {
 			ssr: input,
 			target,
 			outDir,
-			emptyOutDir: false,
-			copyPublicDir: false,
-			minify: false,
 			rolldownOptions: {
 				output: {
-					format: "cjs",
 					entryFileNames: "index.js",
-					// GitHub Actions runs one file per entry point, so nothing may be split out.
-					codeSplitting: false,
 					// Keep license notices. JSDoc and #__PURE__ annotations only serve
 					// editors and downstream bundlers, and nothing re-bundles dist/.
 					comments: { legal: true, annotation: false, jsdoc: false },

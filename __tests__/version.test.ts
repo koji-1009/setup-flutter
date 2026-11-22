@@ -20,11 +20,17 @@ vi.mock("node:timers/promises", () => ({
 }));
 
 const linuxFixture: FlutterManifest = JSON.parse(
-	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),
+	readFileSync(
+		join(import.meta.dirname, "fixtures", "releases_linux.json"),
+		"utf8",
+	),
 );
 
 const macosFixture: FlutterManifest = JSON.parse(
-	readFileSync(join(__dirname, "fixtures", "releases_macos.json"), "utf8"),
+	readFileSync(
+		join(import.meta.dirname, "fixtures", "releases_macos.json"),
+		"utf8",
+	),
 );
 
 describe("parseVersionSpec", () => {
