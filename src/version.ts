@@ -64,7 +64,7 @@ export function parseVersionSpec(input: string): VersionSpec {
 	if (/^\d+\.x$/.test(trimmed) || /^\d+\.\d+\.x$/.test(trimmed)) {
 		const parts = trimmed.split(".");
 		const maj = parseInt(parts[0], 10);
-		if (parts.length >= 2 && parts[1] !== "x") {
+		if (parts[1] !== "x") {
 			return { type: "range", major: maj, minor: parseInt(parts[1], 10) };
 		}
 		return { type: "range", major: maj };

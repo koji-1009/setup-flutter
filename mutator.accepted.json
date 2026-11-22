@@ -1,7 +1,7 @@
 {
-  "16h3gdjcsep": {
-    "reason": "the regexes above guarantee at least two parts, and in the two-part form parts[1] is 'x'",
-    "where": "src/version.ts:67:7 parts.length >= 2 -> true"
+  "162us8dpnvc": {
+    "reason": "git ls-remote emits ^{} only as the suffix of a peeled tag line",
+    "where": "src/git-source.ts:138:58 /\\^\\{\\}$/ -> /\\^\\{\\}/"
   },
   "19v3xcuwsv8": {
     "reason": "only affects whitespace at the ends inside the quotes, which pubspec version constraints do not have",
@@ -55,10 +55,6 @@
     "reason": "a value starting with # (flutter: # comment) is a YAML null, which pubspec does not use for the flutter constraint",
     "where": "src/version-file.ts:42:9 commentIndex >= 0 -> commentIndex > 0"
   },
-  "2b79rha9xgh": {
-    "reason": "the regexes above guarantee at least two parts, and in the two-part form parts[1] is 'x'",
-    "where": "src/version.ts:67:7 parts.length >= 2 -> parts.length > 2"
-  },
   "2dowqsdj8vu": {
     "reason": "blank and indented comment lines fall through to the next line without this check: they neither close the block nor match the flutter key",
     "where": "src/version-file.ts:27:20 line.trim() -> line"
@@ -75,10 +71,6 @@
     "reason": "the pattern is not end-anchored, so one trailing digit matches the same inputs as one or more",
     "where": "src/version.ts:73:6 /^\\d+\\.\\d+\\.\\d+/ -> /^\\d+\\.\\d+\\.\\d/"
   },
-  "bwzsufzb8o": {
-    "reason": "git ls-remote emits ^{} only as the suffix of a peeled tag line",
-    "where": "src/git-source.ts:138:58 /\\^\\{\\}$/ -> /\\^\\{\\}/"
-  },
   "dhp9l2fqli": {
     "reason": "blank and indented comment lines fall through to the next line without this check: they neither close the block nor match the flutter key",
     "where": "src/version-file.ts:28:8 trimmed === \"\" -> false"
@@ -86,10 +78,6 @@
   "j0v2bru6jk": {
     "reason": "differs only for 'flutter :' with a space before the colon or another environment key starting with 'flutter', which pubspec does not use",
     "where": "src/version-file.ts:34:25 /^\\s+flutter\\s*:\\s*(.+)/ -> /^\\s+flutter\\S*:\\s*(.+)/"
-  },
-  "ji4ig962o2": {
-    "reason": "a blank line is also skipped by the FULL_HASH_PATTERN check on the next line",
-    "where": "src/git-source.ts:134:7 !line -> false"
   },
   "l7gvenm9y1": {
     "reason": "git mode installs with installFromGit, which never reads downloadUrl or sha256",
