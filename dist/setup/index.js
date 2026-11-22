@@ -1001,7 +1001,7 @@ var require_util = __commonJS({
         return body2;
       } else if (body2 && typeof body2.pipeTo === "function") {
         return new BodyAsyncIterable(body2);
-      } else if (body2 && typeof body2 !== "string" && !ArrayBuffer.isView(body2) && isIterable(body2)) {
+      } else if (body2 && typeof body2 !== "string" && !ArrayBuffer.isView(body2) && isIterable2(body2)) {
         return new BodyAsyncIterable(body2);
       } else {
         return body2;
@@ -1121,7 +1121,7 @@ var require_util = __commonJS({
     function isAsyncIterable(obj) {
       return !!(obj != null && typeof obj[Symbol.asyncIterator] === "function");
     }
-    function isIterable(obj) {
+    function isIterable2(obj) {
       return !!(obj != null && (typeof obj[Symbol.iterator] === "function" || typeof obj[Symbol.asyncIterator] === "function"));
     }
     function bodyLength(body2) {
@@ -1426,7 +1426,7 @@ var require_util = __commonJS({
       parseURL,
       getServerName,
       isStream,
-      isIterable,
+      isIterable: isIterable2,
       isAsyncIterable,
       isDestroyed,
       headerNameToString,
@@ -1664,7 +1664,7 @@ var require_request = __commonJS({
       destroy: destroy2,
       isBuffer,
       isFormDataLike,
-      isIterable,
+      isIterable: isIterable2,
       isBlobLike,
       buildURL,
       validateHandler,
@@ -1754,7 +1754,7 @@ var require_request = __commonJS({
           this.body = body2.byteLength ? Buffer.from(body2) : null;
         } else if (typeof body2 === "string") {
           this.body = body2.length ? Buffer.from(body2) : null;
-        } else if (isFormDataLike(body2) || isIterable(body2) || isBlobLike(body2)) {
+        } else if (isFormDataLike(body2) || isIterable2(body2) || isBlobLike(body2)) {
           this.body = body2;
         } else {
           throw new InvalidArgumentError("body must be a string, a Buffer, a Readable stream, an iterable, or an async iterable");
@@ -3656,7 +3656,7 @@ var require_data_url = __commonJS({
 var require_webidl = __commonJS({
   "node_modules/undici/lib/web/fetch/webidl.js"(exports2, module2) {
     "use strict";
-    var { types: types2, inspect: inspect2 } = require("node:util");
+    var { types: types3, inspect: inspect2 } = require("node:util");
     var { markAsUncloneable } = require("node:worker_threads");
     var { toUSVString } = require_util();
     var webidl = {};
@@ -3846,7 +3846,7 @@ var require_webidl = __commonJS({
           });
         }
         const result = {};
-        if (!types2.isProxy(O)) {
+        if (!types3.isProxy(O)) {
           const keys2 = [...Object.getOwnPropertyNames(O), ...Object.getOwnPropertySymbols(O)];
           for (const key of keys2) {
             const typedKey = keyConverter(key, prefix2, argument);
@@ -3975,14 +3975,14 @@ var require_webidl = __commonJS({
       return x;
     };
     webidl.converters.ArrayBuffer = function(V, prefix2, argument, opts) {
-      if (webidl.util.Type(V) !== "Object" || !types2.isAnyArrayBuffer(V)) {
+      if (webidl.util.Type(V) !== "Object" || !types3.isAnyArrayBuffer(V)) {
         throw webidl.errors.conversionFailed({
           prefix: prefix2,
           argument: `${argument} ("${webidl.util.Stringify(V)}")`,
           types: ["ArrayBuffer"]
         });
       }
-      if (opts?.allowShared === false && types2.isSharedArrayBuffer(V)) {
+      if (opts?.allowShared === false && types3.isSharedArrayBuffer(V)) {
         throw webidl.errors.exception({
           header: "ArrayBuffer",
           message: "SharedArrayBuffer is not allowed."
@@ -3997,14 +3997,14 @@ var require_webidl = __commonJS({
       return V;
     };
     webidl.converters.TypedArray = function(V, T, prefix2, name, opts) {
-      if (webidl.util.Type(V) !== "Object" || !types2.isTypedArray(V) || V.constructor.name !== T.name) {
+      if (webidl.util.Type(V) !== "Object" || !types3.isTypedArray(V) || V.constructor.name !== T.name) {
         throw webidl.errors.conversionFailed({
           prefix: prefix2,
           argument: `${name} ("${webidl.util.Stringify(V)}")`,
           types: [T.name]
         });
       }
-      if (opts?.allowShared === false && types2.isSharedArrayBuffer(V.buffer)) {
+      if (opts?.allowShared === false && types3.isSharedArrayBuffer(V.buffer)) {
         throw webidl.errors.exception({
           header: "ArrayBuffer",
           message: "SharedArrayBuffer is not allowed."
@@ -4019,13 +4019,13 @@ var require_webidl = __commonJS({
       return V;
     };
     webidl.converters.DataView = function(V, prefix2, name, opts) {
-      if (webidl.util.Type(V) !== "Object" || !types2.isDataView(V)) {
+      if (webidl.util.Type(V) !== "Object" || !types3.isDataView(V)) {
         throw webidl.errors.exception({
           header: prefix2,
           message: `${name} is not a DataView.`
         });
       }
-      if (opts?.allowShared === false && types2.isSharedArrayBuffer(V.buffer)) {
+      if (opts?.allowShared === false && types3.isSharedArrayBuffer(V.buffer)) {
         throw webidl.errors.exception({
           header: "ArrayBuffer",
           message: "SharedArrayBuffer is not allowed."
@@ -4040,13 +4040,13 @@ var require_webidl = __commonJS({
       return V;
     };
     webidl.converters.BufferSource = function(V, prefix2, name, opts) {
-      if (types2.isAnyArrayBuffer(V)) {
+      if (types3.isAnyArrayBuffer(V)) {
         return webidl.converters.ArrayBuffer(V, prefix2, name, { ...opts, allowShared: false });
       }
-      if (types2.isTypedArray(V)) {
+      if (types3.isTypedArray(V)) {
         return webidl.converters.TypedArray(V, V.constructor, prefix2, name, { ...opts, allowShared: false });
       }
-      if (types2.isDataView(V)) {
+      if (types3.isDataView(V)) {
         return webidl.converters.DataView(V, prefix2, name, { ...opts, allowShared: false });
       }
       throw webidl.errors.conversionFailed({
@@ -6592,10 +6592,10 @@ upgrade: ${upgrade}\r
     }
     function writeStream(abort, body2, client, request, socket, contentLength2, header, expectsPayload) {
       assert(contentLength2 !== 0 || client[kRunning] === 0, "stream body cannot be pipelined");
-      let finished = false;
+      let finished2 = false;
       const writer = new AsyncWriter({ abort, socket, request, contentLength: contentLength2, client, expectsPayload, header });
       const onData = function(chunk) {
-        if (finished) {
+        if (finished2) {
           return;
         }
         try {
@@ -6607,7 +6607,7 @@ upgrade: ${upgrade}\r
         }
       };
       const onDrain = function() {
-        if (finished) {
+        if (finished2) {
           return;
         }
         if (body2.resume) {
@@ -6618,16 +6618,16 @@ upgrade: ${upgrade}\r
         queueMicrotask(() => {
           body2.removeListener("error", onFinished);
         });
-        if (!finished) {
+        if (!finished2) {
           const err = new RequestAbortedError();
           queueMicrotask(() => onFinished(err));
         }
       };
       const onFinished = function(err) {
-        if (finished) {
+        if (finished2) {
           return;
         }
-        finished = true;
+        finished2 = true;
         assert(socket.destroyed || socket[kWriting] && client[kRunning] <= 1);
         socket.off("drain", onDrain).off("error", onFinished);
         body2.removeListener("data", onData).removeListener("end", onFinished).removeListener("close", onClose);
@@ -10035,7 +10035,7 @@ var require_api_stream = __commonJS({
   "node_modules/undici/lib/api/api-stream.js"(exports2, module2) {
     "use strict";
     var assert = require("node:assert");
-    var { finished, PassThrough } = require("node:stream");
+    var { finished: finished2, PassThrough } = require("node:stream");
     var { InvalidArgumentError, InvalidReturnValueError } = require_errors();
     var util5 = require_util();
     var { getResolveErrorBodyCallback } = require_util3();
@@ -10131,7 +10131,7 @@ var require_api_stream = __commonJS({
           if (!res || typeof res.write !== "function" || typeof res.end !== "function" || typeof res.on !== "function") {
             throw new InvalidReturnValueError("expected Writable");
           }
-          finished(res, { readable: false }, (err) => {
+          finished2(res, { readable: false }, (err) => {
             const { callback: callback2, res: res2, opaque: opaque2, trailers, abort } = this;
             this.res = null;
             if (err || !res2.readable) {
@@ -12397,7 +12397,7 @@ var require_response = __commonJS({
     var { URLSerializer } = require_data_url();
     var { kConstruct } = require_symbols();
     var assert = require("node:assert");
-    var { types: types2 } = require("node:util");
+    var { types: types3 } = require("node:util");
     var textEncoder = new TextEncoder("utf-8");
     var Response2 = class _Response {
       // Creates network error Response.
@@ -12718,7 +12718,7 @@ var require_response = __commonJS({
       if (isBlobLike(V)) {
         return webidl.converters.Blob(V, prefix2, name, { strict: false });
       }
-      if (ArrayBuffer.isView(V) || types2.isArrayBuffer(V)) {
+      if (ArrayBuffer.isView(V) || types3.isArrayBuffer(V)) {
         return webidl.converters.BufferSource(V, prefix2, name);
       }
       if (util5.isFormDataLike(V)) {
@@ -13564,7 +13564,7 @@ var require_fetch = __commonJS({
       subresourceSet
     } = require_constants3();
     var EE = require("node:events");
-    var { Readable: Readable5, pipeline: pipeline3, finished } = require("node:stream");
+    var { Readable: Readable5, pipeline: pipeline3, finished: finished2 } = require("node:stream");
     var { addAbortListener, isErrored, isReadable, bufferToLowerCasedHeaderName } = require_util();
     var { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = require_data_url();
     var { getGlobalDispatcher } = require_global2();
@@ -14032,7 +14032,7 @@ var require_fetch = __commonJS({
       if (internalResponse.body == null) {
         processResponseEndOfBody();
       } else {
-        finished(internalResponse.body.stream, () => {
+        finished2(internalResponse.body.stream, () => {
           processResponseEndOfBody();
         });
       }
@@ -14952,7 +14952,7 @@ var require_util4 = __commonJS({
     var { ProgressEvent } = require_progressevent();
     var { getEncoding } = require_encoding();
     var { serializeAMimeType, parseMIMEType } = require_data_url();
-    var { types: types2 } = require("node:util");
+    var { types: types3 } = require("node:util");
     var { StringDecoder } = require("string_decoder");
     var { btoa: btoa2 } = require("node:buffer");
     var staticPropertyDescriptors = {
@@ -14982,7 +14982,7 @@ var require_util4 = __commonJS({
               });
             }
             isFirstChunk = false;
-            if (!done && types2.isUint8Array(value)) {
+            if (!done && types3.isUint8Array(value)) {
               bytes.push(value);
               if ((fr[kLastProgressEventFired] === void 0 || Date.now() - fr[kLastProgressEventFired] >= 50) && !fr[kAborted]) {
                 fr[kLastProgressEventFired] = Date.now();
@@ -17912,7 +17912,7 @@ var require_websocket = __commonJS({
     var { ByteParser } = require_receiver();
     var { kEnumerableProperty, isBlobLike } = require_util();
     var { getGlobalDispatcher } = require_global2();
-    var { types: types2 } = require("node:util");
+    var { types: types3 } = require("node:util");
     var { ErrorEvent, CloseEvent } = require_events();
     var { SendQueue } = require_sender();
     var WebSocket = class _WebSocket extends EventTarget {
@@ -18035,7 +18035,7 @@ var require_websocket = __commonJS({
           this.#sendQueue.add(data, () => {
             this.#bufferedAmount -= length;
           }, sendHints.string);
-        } else if (types2.isArrayBuffer(data)) {
+        } else if (types3.isArrayBuffer(data)) {
           this.#bufferedAmount += data.byteLength;
           this.#sendQueue.add(data, () => {
             this.#bufferedAmount -= data.byteLength;
@@ -18247,7 +18247,7 @@ var require_websocket = __commonJS({
         if (isBlobLike(V)) {
           return webidl.converters.Blob(V, { strict: false });
         }
-        if (ArrayBuffer.isView(V) || types2.isArrayBuffer(V)) {
+        if (ArrayBuffer.isView(V) || types3.isArrayBuffer(V)) {
           return webidl.converters.BufferSource(V);
         }
       }
@@ -19158,6 +19158,33 @@ var require_constants6 = __commonJS({
     9007199254740991;
     var MAX_SAFE_COMPONENT_LENGTH = 16;
     var MAX_SAFE_BUILD_LENGTH = MAX_LENGTH - 6;
+    var WHITESPACE_CHARACTERS = [
+      "	",
+      "\n",
+      "\v",
+      "\f",
+      "\r",
+      " ",
+      "\xA0",
+      "\u1680",
+      "\u2000",
+      "\u2001",
+      "\u2002",
+      "\u2003",
+      "\u2004",
+      "\u2005",
+      "\u2006",
+      "\u2007",
+      "\u2008",
+      "\u2009",
+      "\u200A",
+      "\u2028",
+      "\u2029",
+      "\u202F",
+      "\u205F",
+      "\u3000",
+      "\uFEFF"
+    ];
     var RELEASE_TYPES = [
       "major",
       "premajor",
@@ -19172,6 +19199,7 @@ var require_constants6 = __commonJS({
       MAX_SAFE_COMPONENT_LENGTH,
       MAX_SAFE_BUILD_LENGTH,
       MAX_SAFE_INTEGER,
+      WHITESPACE_CHARACTERS,
       RELEASE_TYPES,
       SEMVER_SPEC_VERSION,
       FLAG_INCLUDE_PRERELEASE: 1,
@@ -20072,6 +20100,197 @@ var require_lrucache = __commonJS({
   }
 });
 
+// node_modules/semver/internal/trim-comparator-whitespace.js
+var require_trim_comparator_whitespace = __commonJS({
+  "node_modules/semver/internal/trim-comparator-whitespace.js"(exports2, module2) {
+    "use strict";
+    var {
+      MAX_LENGTH,
+      MAX_SAFE_BUILD_LENGTH,
+      WHITESPACE_CHARACTERS
+    } = require_constants6();
+    var whitespace = new Uint8Array(65536);
+    for (const char of WHITESPACE_CHARACTERS) {
+      whitespace[char.charCodeAt(0)] = 1;
+    }
+    var isWhitespace = (char) => char !== void 0 && whitespace[char.charCodeAt(0)] === 1;
+    var isVersionPrefix = (char) => char === "v" || char === "=" || isWhitespace(char);
+    var isDigit = (char) => char !== void 0 && char >= "0" && char <= "9";
+    var isLetter = (char) => char !== void 0 && (char >= "a" && char <= "z" || char >= "A" && char <= "Z");
+    var isIdentifierCharacter = (char) => isDigit(char) || isLetter(char) || char === "-";
+    var isVersionStart = (char) => isDigit(char) || char === "x" || char === "X" || char === "*";
+    var findDigitsEndIndex = (range3, start, limit, digitRuns) => {
+      if (!isDigit(range3[start])) {
+        return start;
+      }
+      if (start >= digitRuns.start && start < digitRuns.end) {
+        return Math.min(start + limit, digitRuns.end);
+      }
+      if (start >= digitRuns.previousStart && start < digitRuns.previousEnd) {
+        return Math.min(start + limit, digitRuns.previousEnd);
+      }
+      let end = start + 1;
+      while (isDigit(range3[end])) {
+        end++;
+      }
+      digitRuns.previousStart = digitRuns.start;
+      digitRuns.previousEnd = digitRuns.end;
+      digitRuns.start = start;
+      digitRuns.end = end;
+      return Math.min(start + limit, end);
+    };
+    var findVersionNumberEndIndex = (range3, start, loose, digitRuns) => {
+      if (!loose && range3[start] === "0") {
+        return start + 1;
+      }
+      return findDigitsEndIndex(range3, start, loose ? MAX_LENGTH : MAX_LENGTH + 1, digitRuns);
+    };
+    var findPrereleaseIdentifierEndIndex = (range3, start, loose, digitRuns) => {
+      const digitsEnd = findDigitsEndIndex(range3, start, MAX_LENGTH, digitRuns);
+      if (isLetter(range3[digitsEnd]) || range3[digitsEnd] === "-") {
+        let end = digitsEnd + 1;
+        const limit = end + MAX_SAFE_BUILD_LENGTH;
+        while (end < limit && isIdentifierCharacter(range3[end])) {
+          end++;
+        }
+        return end;
+      }
+      return findVersionNumberEndIndex(range3, start, loose, digitRuns);
+    };
+    var findPrereleaseEndIndex = (range3, start, loose, digitRuns) => {
+      const hyphen = range3[start] === "-";
+      if (!loose && !hyphen) {
+        return start;
+      }
+      const identifierStart = start + (hyphen ? 1 : 0);
+      let end = findPrereleaseIdentifierEndIndex(range3, identifierStart, loose, digitRuns);
+      if (end === identifierStart) {
+        if (!loose || !hyphen) {
+          return start;
+        }
+        end = findPrereleaseIdentifierEndIndex(range3, start, loose, digitRuns);
+      }
+      while (range3[end] === ".") {
+        const next = findPrereleaseIdentifierEndIndex(range3, end + 1, loose, digitRuns);
+        if (next === end + 1) {
+          break;
+        }
+        end = next;
+      }
+      return end;
+    };
+    var findBuildIdentifierEndIndex = (range3, start) => {
+      let end = start;
+      while (end - start < MAX_SAFE_BUILD_LENGTH && isIdentifierCharacter(range3[end])) {
+        end++;
+      }
+      return end;
+    };
+    var findBuildEndIndex = (range3, start) => {
+      if (range3[start] !== "+") {
+        return start;
+      }
+      let end = findBuildIdentifierEndIndex(range3, start + 1);
+      if (end === start + 1) {
+        return start;
+      }
+      while (range3[end] === ".") {
+        const next = findBuildIdentifierEndIndex(range3, end + 1);
+        if (next === end + 1) {
+          break;
+        }
+        end = next;
+      }
+      return end;
+    };
+    var findLooseFullVersionEndIndex = (range3, start, digitRuns) => {
+      let end = start;
+      for (let component = 0; component < 3; component++) {
+        const next = findVersionNumberEndIndex(range3, end, true, digitRuns);
+        if (next === end) {
+          return start;
+        }
+        end = next;
+        if (component < 2) {
+          if (range3[end] !== ".") {
+            return start;
+          }
+          end++;
+        }
+      }
+      const prereleaseEnd = findPrereleaseEndIndex(range3, end, true, digitRuns);
+      return findBuildEndIndex(range3, prereleaseEnd);
+    };
+    var findPartialVersionComponentEndIndex = (range3, start, digitRuns) => {
+      if (isDigit(range3[start])) {
+        return findVersionNumberEndIndex(range3, start, false, digitRuns);
+      }
+      return isVersionStart(range3[start]) ? start + 1 : start;
+    };
+    var findPartialVersionEndIndex = (range3, start, digitRuns) => {
+      let end = findPartialVersionComponentEndIndex(range3, start, digitRuns);
+      for (let component = 0; component < 2; component++) {
+        if (range3[end] !== ".") {
+          return end;
+        }
+        const next = findPartialVersionComponentEndIndex(range3, end + 1, digitRuns);
+        if (next === end + 1) {
+          return end;
+        }
+        end = next;
+      }
+      const prereleaseEnd = findPrereleaseEndIndex(range3, end, false, digitRuns);
+      return findBuildEndIndex(range3, prereleaseEnd);
+    };
+    var findVersionEndIndex = (range3, start, digitRuns) => {
+      const fullVersionEnd = findLooseFullVersionEndIndex(range3, start, digitRuns);
+      return fullVersionEnd !== start ? fullVersionEnd : findPartialVersionEndIndex(range3, start, digitRuns);
+    };
+    var findRemovableWhitespaceIndex = (range3, matchStart) => {
+      let position = matchStart;
+      if (isWhitespace(range3[position])) {
+        position++;
+      }
+      if (range3[position] === "<" || range3[position] === ">") {
+        position++;
+      }
+      if (range3[position] === "=") {
+        position++;
+      }
+      return isWhitespace(range3[position]) ? position : -1;
+    };
+    var trimComparatorWhitespace = (range3) => {
+      let result = "";
+      let copyFrom = 0;
+      let cursor = 0;
+      const digitRuns = { start: -1, end: -1, previousStart: -1, previousEnd: -1 };
+      while (cursor < range3.length) {
+        const matchStart = cursor;
+        if (range3[cursor] === "<" || range3[cursor] === ">") {
+          cursor++;
+        } else if (!isVersionPrefix(range3[cursor]) && !isVersionStart(range3[cursor])) {
+          cursor++;
+          continue;
+        }
+        while (cursor < range3.length && isVersionPrefix(range3[cursor])) {
+          cursor++;
+        }
+        if (!isVersionStart(range3[cursor])) {
+          continue;
+        }
+        const whitespacePosition = findRemovableWhitespaceIndex(range3, matchStart);
+        if (whitespacePosition !== -1) {
+          result += range3.slice(copyFrom, whitespacePosition);
+          copyFrom = whitespacePosition + 1;
+        }
+        cursor = findVersionEndIndex(range3, cursor, digitRuns);
+      }
+      return result + range3.slice(copyFrom);
+    };
+    module2.exports = trimComparatorWhitespace;
+  }
+});
+
 // node_modules/semver/classes/range.js
 var require_range = __commonJS({
   "node_modules/semver/classes/range.js"(exports2, module2) {
@@ -20153,7 +20372,7 @@ var require_range = __commonJS({
         const hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE];
         range3 = range3.replace(hr, hyphenReplace(this.options.includePrerelease));
         debug2("hyphen replace", range3);
-        range3 = range3.replace(re[t.COMPARATORTRIM], comparatorTrimReplace);
+        range3 = trimComparatorWhitespace(range3);
         debug2("comparator trim", range3);
         range3 = range3.replace(re[t.TILDETRIM], tildeTrimReplace);
         debug2("tilde trim", range3);
@@ -20223,11 +20442,11 @@ var require_range = __commonJS({
     var Comparator = require_comparator();
     var debug2 = require_debug();
     var SemVer = require_semver();
+    var trimComparatorWhitespace = require_trim_comparator_whitespace();
     var {
       safeRe: re,
       src,
       t,
-      comparatorTrimReplace,
       tildeTrimReplace,
       caretTrimReplace
     } = require_re();
@@ -28758,22 +28977,6 @@ var MatchKind;
 var IS_WINDOWS4 = process.platform === "win32";
 
 // node_modules/balanced-match/dist/esm/index.js
-var balanced = (a, b, str) => {
-  const ma = a instanceof RegExp ? maybeMatch(a, str) : a;
-  const mb = b instanceof RegExp ? maybeMatch(b, str) : b;
-  const r = ma !== null && mb != null && range(ma, mb, str);
-  return r && {
-    start: r[0],
-    end: r[1],
-    pre: str.slice(0, r[0]),
-    body: str.slice(r[0] + ma.length, r[1]),
-    post: str.slice(r[1] + mb.length)
-  };
-};
-var maybeMatch = (reg, str) => {
-  const m = str.match(reg);
-  return m ? m[0] : null;
-};
 var range = (a, b, str) => {
   let begs, beg, left, right = void 0, result;
   let ai = str.indexOf(a);
@@ -28811,11 +29014,11 @@ var range = (a, b, str) => {
 };
 
 // node_modules/brace-expansion/dist/esm/index.js
-var escSlash = "\0SLASH" + Math.random() + "\0";
-var escOpen = "\0OPEN" + Math.random() + "\0";
-var escClose = "\0CLOSE" + Math.random() + "\0";
-var escComma = "\0COMMA" + Math.random() + "\0";
-var escPeriod = "\0PERIOD" + Math.random() + "\0";
+var escSlash = "\0SLASH" + Math.random().toFixed(16) + "\0";
+var escOpen = "\0OPEN" + Math.random().toFixed(16) + "\0";
+var escClose = "\0CLOSE" + Math.random().toFixed(16) + "\0";
+var escComma = "\0COMMA" + Math.random().toFixed(16) + "\0";
+var escPeriod = "\0PERIOD" + Math.random().toFixed(16) + "\0";
 var escSlashPattern = new RegExp(escSlash, "g");
 var escOpenPattern = new RegExp(escOpen, "g");
 var escClosePattern = new RegExp(escClose, "g");
@@ -28830,6 +29033,8 @@ var EXPANSION_MAX = 1e5;
 var EXPANSION_MAX_LENGTH = 4e6;
 var EXPANSION_MAX_DEPTH = 1e3;
 var EXPANSION_MAX_REWRITES = 1e3;
+var EXPANSION_MAX_STEPS = 2e7;
+var CALL_STEPS = 16;
 function numeric(str) {
   return !isNaN(str) ? parseInt(str, 10) : str.charCodeAt(0);
 }
@@ -28844,11 +29049,70 @@ function pushAll(target, items) {
     target.push(items[i]);
   }
 }
-function parseCommaParts(str) {
+function balancedWithBudget(str, masked, budget) {
+  if (budget.remaining < 0) {
+    return void 0;
+  }
+  const r = range("{", "}", masked);
+  const unmatched = r !== void 0 && masked.indexOf("{") < r[0];
+  budget.remaining -= r && !unmatched ? r[1] + 1 : str.length;
+  if (!r || budget.remaining < 0) {
+    return void 0;
+  }
+  return {
+    end: r[1],
+    pre: str.slice(0, r[0]),
+    body: str.slice(r[0] + 1, r[1]),
+    post: str.slice(r[1] + 1),
+    unmatched
+  };
+}
+function maskUnmatchedOpens(masked, budget) {
+  budget.remaining -= masked.length;
+  const open2 = [];
+  for (let i = 0; i < masked.length; i++) {
+    const c = masked.charCodeAt(i);
+    if (c === 123) {
+      open2.push(i);
+    } else if (c === 125 && open2.length) {
+      open2.pop();
+    }
+  }
+  let out = "";
+  let last = 0;
+  for (let i = 0; i < open2.length; i++) {
+    const at = open2[i];
+    out += masked.slice(last, at) + "\0";
+    last = at + 1;
+  }
+  return out + masked.slice(last);
+}
+function commaSetFollows(str, budget) {
+  budget.remaining -= str.length;
+  if (budget.remaining < 0) {
+    return false;
+  }
+  let close = false;
+  for (let i = str.length - 1; i >= 0; i--) {
+    const c = str.charCodeAt(i);
+    if (c === 125) {
+      close = true;
+    } else if (c === 10 || c === 13 || c === 8232 || c === 8233) {
+      close = false;
+    } else if (c === 44 && close && str.charCodeAt(i + 1) !== 44) {
+      return true;
+    }
+  }
+  return false;
+}
+function parseCommaParts(str, budget) {
   const parts = [];
   let carry = "";
   for (; ; ) {
-    const m = balanced("{", "}", str);
+    const m = balancedWithBudget(str, str, budget);
+    if (budget.remaining < 0) {
+      return void 0;
+    }
     if (!m) {
       const tail = str.split(",");
       tail[0] = carry + tail[0];
@@ -28868,15 +29132,22 @@ function parseCommaParts(str) {
     str = post;
   }
 }
+function bound(value, fallback) {
+  return value === void 0 || isNaN(value) ? fallback : value;
+}
 function expand(str, options = {}) {
   if (!str) {
     return [];
   }
-  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH, maxDepth = EXPANSION_MAX_DEPTH, maxRewrites = EXPANSION_MAX_REWRITES } = options;
+  const max = bound(options.max, EXPANSION_MAX);
+  const maxLength = bound(options.maxLength, EXPANSION_MAX_LENGTH);
+  const maxDepth = bound(options.maxDepth, EXPANSION_MAX_DEPTH);
+  const maxRewrites = bound(options.maxRewrites, EXPANSION_MAX_REWRITES);
+  const maxSteps = bound(options.maxSteps, EXPANSION_MAX_STEPS);
   if (str.slice(0, 2) === "{}") {
     str = "\\{\\}" + str.slice(2);
   }
-  return expand_(escapeBraces(str), max, maxLength, maxDepth, 0, maxRewrites, true).map(unescapeBraces);
+  return expand_(escapeBraces(str), max, maxLength, maxDepth, 0, maxRewrites, { remaining: maxSteps }, true).map(unescapeBraces);
 }
 function embrace(str) {
   return "{" + str + "}";
@@ -28890,25 +29161,32 @@ function lte(i, y) {
 function gte(i, y) {
   return i >= y;
 }
-function combine(acc, pre, values, max, maxLength, dropEmpties) {
+function combine(acc, pre, values, max, maxLength, dropEmpties, budget) {
   const out = [];
   let length = 0;
-  for (let a = 0; a < acc.length; a++) {
-    for (let v = 0; v < values.length; v++) {
+  let nonEmpty;
+  outer: for (let a = 0; a < acc.length; a++) {
+    const prefix2 = acc[a] + pre;
+    let vs = values;
+    if (dropEmpties && !prefix2) {
+      if (!nonEmpty)
+        nonEmpty = values.filter((v) => v);
+      vs = nonEmpty;
+    }
+    for (let v = 0; v < vs.length; v++) {
       if (out.length >= max)
-        return out;
-      const expansion = acc[a] + pre + values[v];
-      if (dropEmpties && !expansion)
-        continue;
+        break outer;
+      const expansion = prefix2 + vs[v];
       if (length + expansion.length > maxLength)
-        return out;
+        break outer;
       out.push(expansion);
       length += expansion.length;
     }
   }
+  budget.remaining -= out.length;
   return out;
 }
-function expandSequence(body2, isAlphaSequence, max, maxLength) {
+function expandSequence(body2, isAlphaSequence, max, maxLength, budget) {
   const n = body2.split(/\.\./);
   const N = [];
   if (n[0] === void 0 || n[1] === void 0) {
@@ -28925,8 +29203,13 @@ function expandSequence(body2, isAlphaSequence, max, maxLength) {
     test = gte;
   }
   const pad = n.some(isPadded);
+  const cost = pad ? width : 1;
   let length = 0;
   for (let i = x; test(i, y) && N.length < max; i += incr) {
+    budget.remaining -= cost;
+    if (budget.remaining < 0) {
+      return void 0;
+    }
     let c;
     if (isAlphaSequence) {
       c = String.fromCharCode(i);
@@ -28954,7 +29237,8 @@ function expandSequence(body2, isAlphaSequence, max, maxLength) {
   }
   return N;
 }
-function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
+function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, budget, isTop) {
+  budget.remaining -= CALL_STEPS;
   if (depth > maxDepth) {
     return [str];
   }
@@ -28962,18 +29246,24 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
   let rewrites = 0;
   let dropEmpties = false;
   let firstGroup = true;
+  let masked = str;
   for (; ; ) {
-    const m = balanced("{", "}", str);
+    const m = balancedWithBudget(str, masked, budget);
     if (!m) {
-      return combine(acc, str, [""], max, maxLength, dropEmpties);
+      return combine(acc, str, [""], max, maxLength, dropEmpties, budget);
+    }
+    if (m.unmatched) {
+      masked = maskUnmatchedOpens(masked, budget);
     }
     const pre = m.pre;
+    const literal = () => combine(acc, pre + "{" + m.body + "}" + m.post, [""], max, maxLength, dropEmpties, budget);
     if (/\$$/.test(pre)) {
-      acc = combine(acc, pre + "{" + m.body + "}", [""], max, maxLength, dropEmpties && !m.post.length);
+      acc = combine(acc, pre + "{" + m.body + "}", [""], max, maxLength, dropEmpties && !m.post.length, budget);
       firstGroup = false;
       if (!m.post.length)
         break;
       str = m.post;
+      masked = masked.slice(m.end + 1);
       continue;
     }
     const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
@@ -28981,13 +29271,14 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
     const isSequence = isNumericSequence || isAlphaSequence;
     const isOptions = m.body.indexOf(",") >= 0;
     if (!isSequence && !isOptions) {
-      if (rewrites < maxRewrites && m.post.match(/,(?!,).*\}/)) {
+      if (rewrites < maxRewrites && commaSetFollows(m.post, budget)) {
         rewrites++;
         str = m.pre + "{" + m.body + escClose + m.post;
+        masked = masked.slice(0, m.end) + escClose + masked.slice(m.end + 1);
         isTop = true;
         continue;
       }
-      return combine(acc, pre + "{" + m.body + "}" + m.post, [""], max, maxLength, dropEmpties);
+      return literal();
     }
     if (firstGroup) {
       dropEmpties = isTop && !isSequence;
@@ -28995,16 +29286,30 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
     }
     let values;
     if (isSequence) {
-      values = expandSequence(m.body, isAlphaSequence, max, maxLength);
+      values = expandSequence(m.body, isAlphaSequence, max, maxLength, budget);
+      if (!values) {
+        return literal();
+      }
     } else {
-      let n = parseCommaParts(m.body);
+      let n = parseCommaParts(m.body, budget);
+      if (!n) {
+        return literal();
+      }
       if (n.length === 1 && n[0] !== void 0) {
-        n = expand_(n[0], max, maxLength, maxDepth, depth + 1, maxRewrites, false).map(embrace);
+        n = expand_(n[0], max, maxLength, maxDepth, depth + 1, maxRewrites, budget, false).map(embrace);
+        if (budget.remaining < 0) {
+          return literal();
+        }
         if (n.length === 1) {
-          acc = combine(acc, pre + n[0], [""], max, maxLength, dropEmpties && !m.post.length);
+          const next2 = combine(acc, pre + n[0], [""], max, maxLength, dropEmpties && !m.post.length, budget);
+          if (budget.remaining < 0) {
+            return literal();
+          }
+          acc = next2;
           if (!m.post.length)
             break;
           str = m.post;
+          masked = masked.slice(m.end + 1);
           continue;
         }
       }
@@ -29017,7 +29322,10 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
       values = [];
       let valuesLength = 0;
       outer: for (let j = 0; j < n.length; j++) {
-        const expanded = expand_(n[j], max, maxLength, maxDepth, depth + 1, maxRewrites, false);
+        const expanded = expand_(n[j], max, maxLength, maxDepth, depth + 1, maxRewrites, budget, false);
+        if (budget.remaining < 0) {
+          return literal();
+        }
         for (let k = 0; k < expanded.length; k++) {
           const v = expanded[k];
           if (dropsEmpties && !v)
@@ -29030,10 +29338,15 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
         }
       }
     }
-    acc = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length);
+    const next = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length, budget);
+    if (budget.remaining < 0) {
+      return literal();
+    }
+    acc = next;
     if (!m.post.length)
       break;
     str = m.post;
+    masked = masked.slice(m.end + 1);
   }
   return acc;
 }
@@ -31418,6 +31731,7 @@ var defaultAllowedHeaderNames = [
   "ms-cv",
   "return-client-request-id",
   "traceparent",
+  "azure-deprecating",
   "Access-Control-Allow-Credentials",
   "Access-Control-Allow-Headers",
   "Access-Control-Allow-Methods",
@@ -31623,14 +31937,377 @@ var import_node_http = __toESM(require("node:http"), 1);
 var import_node_https = __toESM(require("node:https"), 1);
 var import_node_zlib = __toESM(require("node:zlib"), 1);
 var import_node_stream = require("node:stream");
+var import_node_util3 = require("node:util");
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/log.js
 var logger = createClientLogger("ts-http-runtime");
 
+// node_modules/@typespec/ts-http-runtime/dist/esm/util/requestBodyHeaders.js
+function getHeaderPairs(headers) {
+  return Array.isArray(headers[0]) ? headers : Array.from({ length: Math.ceil(headers.length / 2) }, (_, index) => [
+    headers[index * 2],
+    headers[index * 2 + 1]
+  ]);
+}
+function isIterable(value) {
+  return Symbol.iterator in value && typeof value[Symbol.iterator] === "function";
+}
+function removeContinueToken(value) {
+  if (typeof value === "string") {
+    const tokens = value.split(",");
+    const remaining = tokens.filter((token) => token.trim().toLowerCase() !== "100-continue");
+    if (remaining.length === tokens.length) {
+      return value;
+    }
+    return remaining.map((token) => token.trim()).filter(Boolean).join(", ") || void 0;
+  }
+  if (Array.isArray(value)) {
+    const remaining = value.map(removeContinueToken).filter((entry) => entry !== void 0);
+    return remaining.length > 0 ? remaining : void 0;
+  }
+  return value;
+}
+function stripRequestBodyHeaders(request, removeFraming) {
+  const stripHeaderValue = (name, value) => {
+    const lowerName = name.toLowerCase();
+    if (removeFraming && (lowerName === "content-length" || lowerName === "transfer-encoding" || lowerName === "trailer")) {
+      return void 0;
+    }
+    return lowerName === "expect" ? removeContinueToken(value) : value;
+  };
+  const stripHeaderPairs = (pairs) => pairs.flatMap(([name, value]) => {
+    const updated = typeof name === "string" ? stripHeaderValue(name, value) : value;
+    return updated === void 0 ? [] : [[name, updated]];
+  });
+  for (const [name, value] of request.headers) {
+    const updated = stripHeaderValue(name, value);
+    if (updated === void 0) {
+      request.headers.delete(name);
+    } else if (typeof updated === "string" && updated !== value) {
+      request.headers.set(name, updated);
+    }
+  }
+  const overrides = request.requestOverrides;
+  if (!overrides || !("headers" in overrides)) {
+    return;
+  }
+  const headers = overrides.headers;
+  if (Array.isArray(headers)) {
+    const updatedPairs = stripHeaderPairs(getHeaderPairs(headers));
+    request.requestOverrides = {
+      ...overrides,
+      headers: Array.isArray(headers[0]) ? updatedPairs : updatedPairs.flat()
+    };
+  } else if (headers && typeof headers === "object" && isIterable(headers)) {
+    const pairs = Array.from(headers, (entry) => {
+      if (!Array.isArray(entry) || entry.length !== 2) {
+        throw new TypeError("Header entry must be a name/value pair");
+      }
+      return entry;
+    });
+    request.requestOverrides = { ...overrides, headers: stripHeaderPairs(pairs) };
+  } else if (headers && typeof headers === "object") {
+    const updatedHeaders = {};
+    for (const [name, value] of Object.entries(headers)) {
+      const updated = stripHeaderValue(name, value);
+      if (updated !== void 0) {
+        updatedHeaders[name] = updated;
+      }
+    }
+    request.requestOverrides = { ...overrides, headers: updatedHeaders };
+  }
+}
+function removeExpectContinueHeader(request) {
+  stripRequestBodyHeaders(request, false);
+}
+function removeRequestBodyHeaders(request) {
+  stripRequestBodyHeaders(request, true);
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/util/nodeExpectContinue.js
+var EXPECT_CONTINUE_TIMEOUT_IN_MS = 1e3;
+function getHeaderValues(headers, name) {
+  if (Array.isArray(headers)) {
+    return getHeaderPairs(headers).filter(([key]) => typeof key === "string" && key.toLowerCase() === name).flatMap(([, value]) => Array.isArray(value) ? value : [value]);
+  }
+  if (headers && typeof headers === "object") {
+    if ("get" in headers && typeof headers.get === "function") {
+      const value2 = headers.get(name);
+      return value2 === void 0 || value2 === null ? [] : [value2];
+    }
+    let value;
+    for (const [key, entry] of Object.entries(headers)) {
+      if (key.toLowerCase() === name) {
+        value = entry;
+      }
+    }
+    return value === void 0 ? [] : Array.isArray(value) ? value : [value];
+  }
+  return [];
+}
+function getEffectiveHeaderValues(request, name) {
+  const headers = request.requestOverrides && "headers" in request.requestOverrides ? request.requestOverrides.headers : request.headers;
+  return getHeaderValues(headers, name.toLowerCase());
+}
+function hasExpectContinue(request) {
+  return getEffectiveHeaderValues(request, "expect").some((value) => typeof value === "string" && value.split(",").some((token) => token.trim().toLowerCase() === "100-continue"));
+}
+function addHeader(headers, name, value) {
+  if (!Array.isArray(headers)) {
+    return { ...headers, [name]: value };
+  }
+  return Array.isArray(headers[0]) ? [...headers, [name, value]] : [...headers, name, value];
+}
+function hasHeader(headers, name) {
+  if (Array.isArray(headers)) {
+    return getHeaderPairs(headers).some(([key]) => typeof key === "string" && key.toLowerCase() === name);
+  }
+  return Object.keys(headers ?? {}).some((key) => key.toLowerCase() === name);
+}
+function addExpectContinueFraming(options, bodyLength) {
+  if (hasHeader(options.headers, "content-length") || hasHeader(options.headers, "transfer-encoding")) {
+    return;
+  }
+  options.headers = addHeader(options.headers, bodyLength === null ? "Transfer-Encoding" : "Content-Length", bodyLength === null ? "chunked" : String(bodyLength));
+}
+function createExpectContinueRequest(options) {
+  let fallback;
+  let waiting = true;
+  let bodyStarted = false;
+  let errorReported = false;
+  let request;
+  let bodyError;
+  const bodyStream = options.bodyStream;
+  bodyStream?.once("error", onBodyError);
+  if (bodyStream && "errored" in bodyStream && bodyStream.errored instanceof Error) {
+    process.nextTick(onBodyError, bodyStream.errored);
+    return;
+  }
+  try {
+    request = options.createRequest(onResponse);
+  } catch (error2) {
+    onError(error2);
+    return;
+  }
+  function stopWaiting(keepBodyObserved = false) {
+    waiting = false;
+    if (fallback !== void 0) {
+      clearTimeout(fallback);
+      fallback = void 0;
+    }
+    request?.removeListener("continue", sendBody);
+    request?.removeListener("socket", onSocket);
+    if (!keepBodyObserved) {
+      bodyStream?.removeListener("error", onBodyError);
+    }
+  }
+  function onError(error2) {
+    const requestError = error2 instanceof Error ? error2 : new Error(String(error2));
+    if (!errorReported) {
+      errorReported = true;
+      stopWaiting();
+      options.onError(requestError);
+    }
+    return requestError;
+  }
+  function onBodyError(error2) {
+    if (errorReported || !waiting && !bodyStarted) {
+      return;
+    }
+    errorReported = true;
+    bodyError = error2 instanceof Error ? error2 : new Error(String(error2));
+    stopWaiting();
+    options.onBodyError(error2);
+    request?.destroy(bodyError);
+  }
+  function sendBody() {
+    if (!waiting) {
+      return;
+    }
+    bodyStarted = true;
+    stopWaiting(true);
+    try {
+      options.sendBody(request);
+    } catch (error2) {
+      onBodyError(error2);
+    } finally {
+      bodyStream?.removeListener("error", onBodyError);
+    }
+  }
+  function onAbort() {
+    stopWaiting();
+    options.onAbort(request);
+  }
+  function onSocket() {
+    if (!waiting) {
+      return;
+    }
+    try {
+      request.flushHeaders();
+      if (!waiting) {
+        return;
+      }
+      request.write("", (error2) => {
+        if (error2) {
+          request.destroy(onError(error2));
+        } else if (waiting) {
+          fallback = setTimeout(sendBody, EXPECT_CONTINUE_TIMEOUT_IN_MS);
+        }
+      });
+    } catch (error2) {
+      request.destroy(onError(error2));
+    }
+  }
+  function onResponse(response) {
+    stopWaiting();
+    if (!bodyStarted) {
+      request.shouldKeepAlive = false;
+      const destroyRequest = () => {
+        response.removeListener("end", destroyRequest);
+        response.removeListener("close", destroyRequest);
+        request.destroy();
+      };
+      response.once("end", destroyRequest);
+      response.once("close", destroyRequest);
+      if (response.readableEnded || response.destroyed) {
+        destroyRequest();
+      }
+    }
+    options.onResponse(response);
+  }
+  request.once("error", onError);
+  if (bodyError) {
+    request.destroy(bodyError);
+    return;
+  }
+  if (options.abortSignal.aborted) {
+    onAbort();
+    return;
+  }
+  options.abortSignal.addEventListener("abort", onAbort, { once: true });
+  request.once("close", () => stopWaiting());
+  if (request.destroyed || request.closed) {
+    stopWaiting();
+  }
+  if (!waiting) {
+    return;
+  }
+  request.once("continue", sendBody);
+  if (request.socket) {
+    onSocket();
+  } else {
+    request.once("socket", onSocket);
+  }
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/util/responseBody.js
+var responseBodySources = /* @__PURE__ */ new WeakMap();
+var responseBodyDisposers = /* @__PURE__ */ new WeakMap();
+var requestCompletions = /* @__PURE__ */ new WeakMap();
+var responseBodyCompletions = /* @__PURE__ */ new WeakMap();
+function setRequestCompletion(response, completion) {
+  requestCompletions.set(response, completion);
+  completion.then(() => requestCompletions.get(response) === completion && requestCompletions.delete(response)).catch((error2) => {
+    logger.warning("Error tracking request completion", error2);
+  });
+}
+function getRequestCompletion(response) {
+  return requestCompletions.get(response);
+}
+function getResponseBodyCompletion(response) {
+  return responseBodyCompletions.get(response);
+}
+function isNodeResponseBody(value) {
+  return typeof value === "object" && value !== null && "resume" in value && typeof value.resume === "function";
+}
+function isNodeEventEmitterBody(value) {
+  return "on" in value && typeof value.on === "function" && "once" in value && typeof value.once === "function" && "removeListener" in value && typeof value.removeListener === "function";
+}
+function isBrowserResponseBody(value) {
+  return typeof value === "object" && value !== null && "cancel" in value && typeof value.cancel === "function";
+}
+function setResponseBodySource(body2, source) {
+  if (isNodeResponseBody(body2) && isNodeResponseBody(source)) {
+    responseBodySources.set(body2, source);
+  }
+}
+function setResponseBodyDisposer(response, dispose) {
+  responseBodyDisposers.set(response, dispose);
+  return () => {
+    if (responseBodyDisposers.get(response) === dispose) {
+      responseBodyDisposers.delete(response);
+    }
+  };
+}
+function disposeNodeResponseBody(readableStream, disposed = /* @__PURE__ */ new Set()) {
+  if (disposed.has(readableStream)) {
+    return;
+  }
+  disposed.add(readableStream);
+  const source = responseBodySources.get(readableStream);
+  responseBodySources.delete(readableStream);
+  if (readableStream.closed !== true) {
+    if (readableStream.destroy) {
+      if (isNodeEventEmitterBody(readableStream)) {
+        const onError = (error2) => {
+          logger.warning("Error disposing Node stream", error2);
+        };
+        const onClose = () => {
+          readableStream.removeListener("error", onError);
+        };
+        readableStream.on("error", onError);
+        readableStream.once("close", onClose);
+        try {
+          readableStream.destroy();
+        } catch (error2) {
+          readableStream.removeListener("error", onError);
+          readableStream.removeListener("close", onClose);
+          throw error2;
+        }
+      } else {
+        readableStream.destroy();
+      }
+    } else {
+      readableStream.resume();
+    }
+  }
+  if (source) {
+    disposeNodeResponseBody(source, disposed);
+  }
+}
+function disposeNodeStream(stream2) {
+  try {
+    disposeNodeResponseBody(stream2);
+  } catch (error2) {
+    logger.warning("Error disposing Node stream", error2);
+  }
+}
+async function disposeResponseBody(response) {
+  try {
+    const dispose = responseBodyDisposers.get(response);
+    responseBodyDisposers.delete(response);
+    try {
+      const readableStream = response.readableStreamBody;
+      if (isNodeResponseBody(readableStream)) {
+        disposeNodeStream(readableStream);
+        return;
+      }
+      const browserStream = response.browserStreamBody;
+      if (isBrowserResponseBody(browserStream)) {
+        await browserStream.cancel();
+      }
+    } finally {
+      dispose?.();
+    }
+  } catch (error2) {
+    logger.warning("Error disposing response body", error2);
+  }
+}
+
 // node_modules/@typespec/ts-http-runtime/dist/esm/nodeHttpClient.js
 var DEFAULT_TLS_SETTINGS = {};
 function isReadableStream(body2) {
-  return body2 && typeof body2.pipe === "function";
+  return typeof body2 === "object" && body2 !== null && "pipe" in body2 && typeof body2.pipe === "function";
 }
 function isStreamComplete(stream2) {
   if (stream2.readable === false) {
@@ -31649,7 +32326,13 @@ function isStreamComplete(stream2) {
   });
 }
 function isArrayBuffer(body2) {
-  return body2 && typeof body2.byteLength === "number";
+  return import_node_util3.types.isArrayBuffer(body2) || ArrayBuffer.isView(body2);
+}
+function arrayBufferToBuffer(body2) {
+  if (Buffer.isBuffer(body2)) {
+    return body2;
+  }
+  return ArrayBuffer.isView(body2) ? Buffer.from(body2.buffer, body2.byteOffset, body2.byteLength) : Buffer.from(body2);
 }
 var ReportTransform = class extends import_node_stream.Transform {
   loadedBytes = 0;
@@ -31670,6 +32353,100 @@ var ReportTransform = class extends import_node_stream.Transform {
     this.progressCallback = progressCallback;
   }
 };
+function createRequestLifecycle(request, options, isInsecure, resolve3, reject) {
+  let clientRequest;
+  let response;
+  let requestDone = false;
+  let resolveRequestComplete;
+  const requestComplete = new Promise((_resolve) => {
+    resolveRequestComplete = _resolve;
+  });
+  const onComplete = () => {
+    requestDone = true;
+    clientRequest.removeListener("finish", onComplete);
+    clientRequest.removeListener("close", onComplete);
+    resolveRequestComplete();
+  };
+  const onResponse = (incomingResponse) => {
+    response = incomingResponse;
+    resolve3({
+      response: incomingResponse,
+      requestComplete,
+      isRequestComplete: () => requestDone,
+      disposeRequest: () => {
+        if (!requestDone) {
+          clientRequest.destroy();
+        }
+      }
+    });
+  };
+  return {
+    createRequest: (onResponseCallback = onResponse) => {
+      clientRequest = isInsecure ? import_node_http.default.request(options, onResponseCallback) : import_node_https.default.request(options, onResponseCallback);
+      clientRequest.once("finish", onComplete);
+      clientRequest.once("close", onComplete);
+      return clientRequest;
+    },
+    onResponse,
+    rejectRequest: (error2) => {
+      reject(toRequestSendError(error2, request));
+    },
+    abortRequest: (req) => {
+      const abortError = new AbortError("The operation was aborted. Rejecting from abort signal callback while making request.");
+      response?.destroy(abortError);
+      req.destroy(abortError);
+      reject(abortError);
+    }
+  };
+}
+function toRequestSendError(error2, request) {
+  if (isRestError(error2)) {
+    return error2;
+  }
+  const prematureClose = error2.code === "ERR_STREAM_PREMATURE_CLOSE";
+  return new RestError(prematureClose ? "Request body stream closed before ending" : error2.message, {
+    code: prematureClose ? RestError.REQUEST_SEND_ERROR : error2.code ?? RestError.REQUEST_SEND_ERROR,
+    request
+  });
+}
+function sendRequestBody(clientRequest, body2, request, onError) {
+  if (body2 && isReadableStream(body2)) {
+    pipeUploadStream(body2, clientRequest, request, onError);
+  } else if (body2) {
+    if (typeof body2 === "string" || Buffer.isBuffer(body2)) {
+      clientRequest.end(body2);
+    } else {
+      logger.error("Unrecognized body type", body2);
+      throw new RestError("Unrecognized body type", { request });
+    }
+  } else {
+    clientRequest.end();
+  }
+}
+function prepareRequestBody(request, useExpectContinue) {
+  const requestBody = request.body;
+  const resolvedBody = typeof requestBody === "function" ? requestBody() : requestBody;
+  const body2 = resolvedBody && isArrayBuffer(resolvedBody) ? arrayBufferToBuffer(resolvedBody) : resolvedBody;
+  if (!useExpectContinue && body2 && !request.headers.has("Content-Length")) {
+    const bodyLength = getBodyLength(body2);
+    if (bodyLength !== null) {
+      request.headers.set("Content-Length", bodyLength);
+    }
+  }
+  if (!body2 || !request.onUploadProgress) {
+    return body2;
+  }
+  const uploadReportStream = new ReportTransform(request.onUploadProgress);
+  uploadReportStream.on("error", (e) => {
+    logger.error("Error in upload progress", e);
+  });
+  if (isReadableStream(body2)) {
+    pipeUploadStream(body2, uploadReportStream, request);
+  } else {
+    uploadReportStream.end(body2);
+  }
+  return uploadReportStream;
+}
 var NodeHttpClient = class {
   cachedHttpAgent;
   cachedHttpsAgents = /* @__PURE__ */ new WeakMap();
@@ -31678,10 +32455,12 @@ var NodeHttpClient = class {
    * @param request - The request to be made.
    */
   async sendRequest(request) {
+    const requestBody = request.body;
     const abortController = new AbortController();
     let abortListener;
-    if (request.abortSignal) {
-      if (request.abortSignal.aborted) {
+    const requestAbortSignal = request.abortSignal;
+    if (requestAbortSignal) {
+      if (requestAbortSignal.aborted) {
         throw new AbortError("The operation was aborted. Request has already been canceled.");
       }
       abortListener = (event) => {
@@ -31689,7 +32468,7 @@ var NodeHttpClient = class {
           abortController.abort();
         }
       };
-      request.abortSignal.addEventListener("abort", abortListener);
+      requestAbortSignal.addEventListener("abort", abortListener);
     }
     let timeoutId;
     if (request.timeout > 0) {
@@ -31701,29 +32480,25 @@ var NodeHttpClient = class {
     }
     const acceptEncoding = request.headers.get("Accept-Encoding");
     const shouldDecompress = acceptEncoding?.includes("gzip") || acceptEncoding?.includes("deflate");
-    let body2 = typeof request.body === "function" ? request.body() : request.body;
-    if (body2 && !request.headers.has("Content-Length")) {
-      const bodyLength = getBodyLength(body2);
-      if (bodyLength !== null) {
-        request.headers.set("Content-Length", bodyLength);
-      }
-    }
+    let body2;
     let responseStream;
+    let requestComplete = Promise.resolve();
     try {
-      if (body2 && request.onUploadProgress) {
-        const onUploadProgress = request.onUploadProgress;
-        const uploadReportStream = new ReportTransform(onUploadProgress);
-        uploadReportStream.on("error", (e) => {
-          logger.error("Error in upload progress", e);
-        });
-        if (isReadableStream(body2)) {
-          body2.pipe(uploadReportStream);
-        } else {
-          uploadReportStream.end(body2);
-        }
-        body2 = uploadReportStream;
+      let useExpectContinue = hasExpectContinue(request);
+      const knownBodyLength = useExpectContinue && typeof requestBody !== "function" ? getBodyLength(requestBody ?? null) : null;
+      if (knownBodyLength === 0) {
+        removeExpectContinueHeader(request);
+        useExpectContinue = false;
       }
-      const res = await this.makeRequest(request, abortController, body2);
+      if (!useExpectContinue) {
+        body2 = prepareRequestBody(request, false);
+      }
+      const result = useExpectContinue ? await this.makeRequestWithExpectContinue(request, abortController, () => {
+        body2 = prepareRequestBody(request, true);
+        return body2;
+      }, knownBodyLength) : await this.makeRequest(request, abortController, body2);
+      requestComplete = result.requestComplete;
+      const res = result.response;
       const headers = getResponseHeaders(res);
       const status = res.statusCode ?? 0;
       const response = {
@@ -31731,19 +32506,26 @@ var NodeHttpClient = class {
         headers,
         request
       };
-      if (request.method === "HEAD") {
+      if (!result.isRequestComplete()) {
+        setRequestCompletion(response, result.requestComplete);
+        const clearDisposer = setResponseBodyDisposer(response, result.disposeRequest);
+        result.requestComplete.then(clearDisposer).catch((error2) => {
+          logger.warning("Error disposing request", error2);
+        });
+      }
+      const method = typeof request.requestOverrides?.method === "string" ? request.requestOverrides.method.toUpperCase() : request.method;
+      if (method === "HEAD") {
         res.resume();
         return response;
       }
-      responseStream = shouldDecompress ? getDecodedResponseStream(res, headers) : res;
+      responseStream = shouldDecompress ? getDecodedResponseStream(res, headers, abortController.signal) : res;
       const onDownloadProgress = request.onDownloadProgress;
       if (onDownloadProgress) {
         const downloadReportStream = new ReportTransform(onDownloadProgress);
         downloadReportStream.on("error", (e) => {
           logger.error("Error in download progress", e);
         });
-        responseStream.pipe(downloadReportStream);
-        responseStream = downloadReportStream;
+        responseStream = pipeResponseStream(responseStream, downloadReportStream, abortController.signal);
       }
       if (
         // Value of POSITIVE_INFINITY in streamResponseStatusCodes is considered as any status code
@@ -31754,11 +32536,19 @@ var NodeHttpClient = class {
         response.bodyAsText = await streamToText(responseStream);
       }
       return response;
+    } catch (error2) {
+      if (isReadableStream(body2)) {
+        disposeNodeStream(body2);
+      }
+      if (responseStream) {
+        disposeNodeStream(responseStream);
+      }
+      throw error2;
     } finally {
       if (timeoutId !== void 0) {
         clearTimeout(timeoutId);
       }
-      if (request.abortSignal && abortListener) {
+      if (requestAbortSignal && abortListener) {
         let uploadStreamDone = Promise.resolve();
         if (isReadableStream(body2)) {
           uploadStreamDone = isStreamComplete(body2);
@@ -31767,9 +32557,9 @@ var NodeHttpClient = class {
         if (isReadableStream(responseStream)) {
           downloadStreamDone = isStreamComplete(responseStream);
         }
-        Promise.all([uploadStreamDone, downloadStreamDone]).then(() => {
+        Promise.all([requestComplete, uploadStreamDone, downloadStreamDone]).then(() => {
           if (abortListener) {
-            request.abortSignal?.removeEventListener("abort", abortListener);
+            requestAbortSignal.removeEventListener("abort", abortListener);
           }
         }).catch((e) => {
           logger.warning("Error when cleaning up abortListener on httpRequest", e);
@@ -31778,46 +32568,54 @@ var NodeHttpClient = class {
     }
   }
   makeRequest(request, abortController, body2) {
+    const { options, isInsecure } = this.getRequestOptions(request);
+    return new Promise((resolve3, reject) => {
+      const { createRequest, rejectRequest, abortRequest } = createRequestLifecycle(request, options, isInsecure, resolve3, reject);
+      const req = createRequest();
+      req.once("error", rejectRequest);
+      abortController.signal.addEventListener("abort", () => abortRequest(req));
+      sendRequestBody(req, body2, request, rejectRequest);
+    });
+  }
+  makeRequestWithExpectContinue(request, abortController, prepareBody, knownBodyLength) {
+    const { options, isInsecure } = this.getRequestOptions(request);
+    addExpectContinueFraming(options, knownBodyLength);
+    return new Promise((resolve3, reject) => {
+      const { createRequest, onResponse, rejectRequest, abortRequest } = createRequestLifecycle(request, options, isInsecure, resolve3, reject);
+      createExpectContinueRequest({
+        abortSignal: abortController.signal,
+        bodyStream: isReadableStream(request.body) ? request.body : void 0,
+        createRequest,
+        onAbort: abortRequest,
+        onError: rejectRequest,
+        onBodyError: reject,
+        onResponse,
+        sendBody: (clientRequest) => {
+          const body2 = prepareBody();
+          sendRequestBody(clientRequest, body2, request, rejectRequest);
+        }
+      });
+    });
+  }
+  getRequestOptions(request) {
     const url2 = new URL(request.url);
     const isInsecure = url2.protocol !== "https:";
     if (isInsecure && !request.allowInsecureConnection) {
       throw new Error(`Cannot connect to ${request.url} while allowInsecureConnection is false.`);
     }
     const agent = request.agent ?? this.getOrCreateAgent(request, isInsecure);
-    const options = {
-      agent,
-      hostname: url2.hostname,
-      path: `${url2.pathname}${url2.search}`,
-      port: url2.port,
-      method: request.method,
-      headers: request.headers.toJSON({ preserveCase: true }),
-      ...request.requestOverrides
-    };
-    return new Promise((resolve3, reject) => {
-      const req = isInsecure ? import_node_http.default.request(options, resolve3) : import_node_https.default.request(options, resolve3);
-      req.once("error", (err) => {
-        reject(new RestError(err.message, { code: err.code ?? RestError.REQUEST_SEND_ERROR, request }));
-      });
-      abortController.signal.addEventListener("abort", () => {
-        const abortError = new AbortError("The operation was aborted. Rejecting from abort signal callback while making request.");
-        req.destroy(abortError);
-        reject(abortError);
-      });
-      if (body2 && isReadableStream(body2)) {
-        body2.pipe(req);
-      } else if (body2) {
-        if (typeof body2 === "string" || Buffer.isBuffer(body2)) {
-          req.end(body2);
-        } else if (isArrayBuffer(body2)) {
-          req.end(ArrayBuffer.isView(body2) ? Buffer.from(body2.buffer, body2.byteOffset, body2.byteLength) : Buffer.from(body2));
-        } else {
-          logger.error("Unrecognized body type", body2);
-          reject(new RestError("Unrecognized body type"));
-        }
-      } else {
-        req.end();
+    return {
+      isInsecure,
+      options: {
+        agent,
+        hostname: url2.hostname,
+        path: `${url2.pathname}${url2.search}`,
+        port: url2.port,
+        method: request.method,
+        headers: request.headers.toJSON({ preserveCase: true }),
+        ...request.requestOverrides
       }
-    });
+    };
   }
   getOrCreateAgent(request, isInsecure) {
     const disableKeepAlive = request.disableKeepAlive;
@@ -31864,41 +32662,81 @@ function getResponseHeaders(res) {
   }
   return headers;
 }
-function getDecodedResponseStream(stream2, headers) {
+function getDecodedResponseStream(stream2, headers, abortSignal) {
   const contentEncoding = headers.get("Content-Encoding");
   if (contentEncoding === "gzip") {
-    const unzip = import_node_zlib.default.createGunzip();
-    stream2.pipe(unzip);
-    return unzip;
+    return pipeResponseStream(stream2, import_node_zlib.default.createGunzip(), abortSignal);
   } else if (contentEncoding === "deflate") {
-    const inflate = import_node_zlib.default.createInflate();
-    stream2.pipe(inflate);
-    return inflate;
+    return pipeResponseStream(stream2, import_node_zlib.default.createInflate(), abortSignal);
   }
   return stream2;
+}
+function pipeUploadStream(source, destination, request, onError) {
+  let tearingDown = false;
+  const cleanupFinished = (0, import_node_stream.finished)(source, { writable: false }, onSourceComplete);
+  function onSourceComplete(error2) {
+    cleanupFinished();
+    destination.removeListener("close", onDestinationClose);
+    if (error2 && !tearingDown) {
+      const requestError = toRequestSendError(error2, request);
+      destination.destroy(requestError);
+      onError?.(requestError);
+    }
+  }
+  function onDestinationClose() {
+    tearingDown = true;
+    source.unpipe(destination);
+    disposeNodeStream(source);
+  }
+  destination.once("close", onDestinationClose);
+  source.pipe(destination);
+}
+function pipeResponseStream(source, destination, abortSignal) {
+  setResponseBodySource(destination, source);
+  let cleanupSource = () => {
+  };
+  let cleanupDestination = () => {
+  };
+  cleanupSource = (0, import_node_stream.finished)(source, { writable: false }, (error2) => {
+    cleanupSource();
+    if (error2) {
+      destination.destroy(abortSignal.aborted ? new AbortError() : error2);
+    }
+  });
+  cleanupDestination = (0, import_node_stream.finished)(destination, { writable: false }, () => {
+    cleanupDestination();
+    source.unpipe(destination);
+    if (source.readable) {
+      disposeNodeStream(source);
+    }
+  });
+  return source.pipe(destination);
 }
 function streamToText(stream2) {
   return new Promise((resolve3, reject) => {
     const buffer3 = [];
-    stream2.on("data", (chunk) => {
+    const cleanupFinished = (0, import_node_stream.finished)(stream2, { writable: false }, onComplete);
+    function onData(chunk) {
       if (Buffer.isBuffer(chunk)) {
         buffer3.push(chunk);
       } else {
         buffer3.push(Buffer.from(chunk));
       }
-    });
-    stream2.on("end", () => {
-      resolve3(Buffer.concat(buffer3).toString("utf8"));
-    });
-    stream2.on("error", (e) => {
-      if (e && e?.name === "AbortError") {
-        reject(e);
-      } else {
-        reject(new RestError(`Error reading response as text: ${e.message}`, {
+    }
+    function onComplete(error2) {
+      cleanupFinished();
+      stream2.removeListener("data", onData);
+      if (error2?.name === "AbortError") {
+        reject(error2);
+      } else if (error2) {
+        reject(new RestError(`Error reading response as text: ${error2.message}`, {
           code: RestError.PARSE_ERROR
         }));
+      } else {
+        resolve3(Buffer.concat(buffer3).toString("utf8"));
       }
-    });
+    }
+    stream2.on("data", onData);
   });
 }
 function getBodyLength(body2) {
@@ -31911,7 +32749,7 @@ function getBodyLength(body2) {
   } else if (isArrayBuffer(body2)) {
     return body2.byteLength;
   } else if (typeof body2 === "string") {
-    return Buffer.from(body2).length;
+    return Buffer.byteLength(body2);
   } else {
     return null;
   }
@@ -32163,11 +33001,17 @@ function retryPolicy(strategies, options = { maxRetries: DEFAULT_RETRY_POLICY_CO
           }
           if (retryAfterInMs || retryAfterInMs === 0) {
             strategyLogger.info(`Retry ${retryCount}: Retry strategy ${strategy.name} retries after ${retryAfterInMs}`);
+            if (response) {
+              await disposeResponseBody(response);
+            }
             await delay(retryAfterInMs, void 0, { abortSignal: request.abortSignal });
             continue retryRequest;
           }
           if (redirectTo) {
             strategyLogger.info(`Retry ${retryCount}: Retry strategy ${strategy.name} redirects to ${redirectTo}`);
+            if (response) {
+              await disposeResponseBody(response);
+            }
             request.url = redirectTo;
             continue retryRequest;
           }
@@ -32492,10 +33336,14 @@ async function handleRedirect(next, response, maxRetries, allowCrossOriginRedire
     request.url = url2.toString();
     if (status === 303) {
       request.method = "GET";
-      request.headers.delete("Content-Length");
+      if (request.requestOverrides && "method" in request.requestOverrides) {
+        request.requestOverrides = { ...request.requestOverrides, method: "GET" };
+      }
+      removeRequestBodyHeaders(request);
       delete request.body;
     }
     request.headers.delete("Authorization");
+    await disposeResponseBody(response);
     const res = await next(request);
     return handleRedirect(next, res, maxRetries, allowCrossOriginRedirects, currentRetries + 1);
   }
@@ -34041,7 +34889,12 @@ function serializeDictionaryType(serializer, mapper, object, objectName, isXml, 
   const tempDictionary = {};
   for (const key of Object.keys(object)) {
     const serializedValue = serializer.serialize(valueType, object[key], objectName, options);
-    tempDictionary[key] = getXmlObjectValue(valueType, serializedValue, isXml, options);
+    Object.defineProperty(tempDictionary, key, {
+      value: getXmlObjectValue(valueType, serializedValue, isXml, options),
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
   }
   if (isXml && mapper.xmlNamespace) {
     const xmlnsKey = mapper.xmlNamespacePrefix ? `xmlns:${mapper.xmlNamespacePrefix}` : "xmlns";
@@ -34203,7 +35056,12 @@ function deserializeCompositeType(serializer, mapper, responseBody, objectName, 
       const dictionary = {};
       for (const headerKey of Object.keys(responseBody)) {
         if (headerKey.startsWith(headerCollectionPrefix)) {
-          dictionary[headerKey.substring(headerCollectionPrefix.length)] = serializer.deserialize(propertyMapper.type.value, responseBody[headerKey], propertyObjectName, options);
+          Object.defineProperty(dictionary, headerKey.substring(headerCollectionPrefix.length), {
+            value: serializer.deserialize(propertyMapper.type.value, responseBody[headerKey], propertyObjectName, options),
+            enumerable: true,
+            configurable: true,
+            writable: true
+          });
         }
         handledPropertyNames.push(headerKey);
       }
@@ -34313,7 +35171,12 @@ function deserializeDictionaryType(serializer, mapper, responseBody, objectName,
   if (responseBody) {
     const tempDictionary = {};
     for (const key of Object.keys(responseBody)) {
-      tempDictionary[key] = serializer.deserialize(value, responseBody[key], objectName, options);
+      Object.defineProperty(tempDictionary, key, {
+        value: serializer.deserialize(value, responseBody[key], objectName, options),
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
     }
     return tempDictionary;
   }
@@ -43292,17 +44155,74 @@ function wrapAbortSignalLike2(abortSignalLike) {
   return { abortSignal: controller.signal, cleanup };
 }
 
+// node_modules/@azure/storage-common/node_modules/@azure/core-rest-pipeline/dist/esm/util/cleanupOnCompletion.js
+function cleanupOnRequestResponseCompletion(response, cleanup) {
+  const stream2 = response?.readableStreamBody;
+  const requestCompletion = response ? getRequestCompletion(response) : void 0;
+  const browserResponseCompletion = response ? getResponseBodyCompletion(response) : void 0;
+  let requestDone = requestCompletion === void 0;
+  let nodeResponseDone = !stream2 || !stream2.readable;
+  let browserResponseDone = browserResponseCompletion === void 0;
+  let cleanedUp = false;
+  const cleanupIfComplete = () => {
+    if (cleanedUp || !requestDone || !nodeResponseDone || !browserResponseDone) {
+      return;
+    }
+    cleanedUp = true;
+    cleanup();
+  };
+  const onResponseComplete = () => {
+    stream2?.removeListener("end", onResponseComplete);
+    stream2?.removeListener("close", onResponseComplete);
+    stream2?.removeListener("error", onResponseComplete);
+    nodeResponseDone = true;
+    try {
+      cleanupIfComplete();
+    } catch (error2) {
+      logger5.warning("Error cleaning up after response stream completion", error2);
+    }
+  };
+  if (!nodeResponseDone && stream2) {
+    stream2.once("end", onResponseComplete);
+    stream2.once("close", onResponseComplete);
+    stream2.once("error", onResponseComplete);
+  }
+  if (requestCompletion) {
+    requestCompletion.then(() => {
+      requestDone = true;
+      return cleanupIfComplete();
+    }).catch((error2) => {
+      logger5.warning("Error cleaning up after request completion", error2);
+    });
+  }
+  if (browserResponseCompletion) {
+    browserResponseCompletion.then(() => {
+      browserResponseDone = true;
+      return cleanupIfComplete();
+    }).catch((error2) => {
+      logger5.warning("Error cleaning up after response body completion", error2);
+    });
+  }
+  cleanupIfComplete();
+}
+
 // node_modules/@azure/storage-common/node_modules/@azure/core-rest-pipeline/dist/esm/defaultHttpClient.js
 function createDefaultHttpClient3() {
   const client = createDefaultHttpClient();
   return {
     async sendRequest(request) {
-      const { abortSignal, cleanup } = request.abortSignal ? wrapAbortSignalLike2(request.abortSignal) : {};
+      const originalAbortSignal = request.abortSignal;
+      const { abortSignal, cleanup } = originalAbortSignal ? wrapAbortSignalLike2(originalAbortSignal) : {};
+      let response;
       try {
         request.abortSignal = abortSignal;
-        return await client.sendRequest(request);
+        response = await client.sendRequest(request);
+        return response;
       } finally {
-        cleanup?.();
+        request.abortSignal = originalAbortSignal;
+        if (cleanup) {
+          cleanupOnRequestResponseCompletion(response, cleanup);
+        }
       }
     }
   };
@@ -61141,9 +62061,9 @@ var AvroEnumType = class extends AvroType {
 };
 var AvroUnionType = class extends AvroType {
   _types;
-  constructor(types2) {
+  constructor(types3) {
     super();
-    this._types = types2;
+    this._types = types3;
   }
   async read(stream2, options = {}) {
     const typeIndex = await AvroParser.readInt(stream2, options);
@@ -62454,7 +63374,7 @@ var Batch = class {
 
 // node_modules/@azure/storage-blob/dist/esm/utils/utils.js
 var import_node_fs = __toESM(require("node:fs"), 1);
-var import_node_util3 = __toESM(require("node:util"), 1);
+var import_node_util4 = __toESM(require("node:util"), 1);
 async function streamToBuffer(stream2, buffer3, offset, end, encoding) {
   let pos = 0;
   const count = end - offset;
@@ -62503,7 +63423,7 @@ async function readStreamToLocalFile(rs, file) {
     rs.pipe(ws);
   });
 }
-var fsStat = import_node_util3.default.promisify(import_node_fs.default.stat);
+var fsStat = import_node_util4.default.promisify(import_node_fs.default.stat);
 var fsCreateReadStream = import_node_fs.default.createReadStream;
 
 // node_modules/@azure/storage-blob/dist/esm/Clients.js
