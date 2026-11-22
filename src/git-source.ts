@@ -131,8 +131,8 @@ async function lsRemoteTags(url: string): Promise<Map<string, string>> {
 	// commit hash, which is what we want to check out/cache.
 	const byTag = new Map<string, string>();
 	for (const line of await lsRemote(url, ["--tags"])) {
-		if (!line) continue;
 		const [hash, refPath] = line.split("\t");
+		// Also skips blank lines, whose hash is empty.
 		if (!FULL_HASH_PATTERN.test(hash)) continue;
 		if (!refPath?.startsWith("refs/tags/")) continue;
 		const tag = refPath.slice("refs/tags/".length).replace(/\^\{\}$/, "");

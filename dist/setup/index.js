@@ -49552,7 +49552,7 @@ function parseVersionSpec(input) {
 	if (/^\d+\.x$/.test(trimmed) || /^\d+\.\d+\.x$/.test(trimmed)) {
 		const parts = trimmed.split(".");
 		const maj = parseInt(parts[0], 10);
-		if (parts.length >= 2 && parts[1] !== "x") return {
+		if (parts[1] !== "x") return {
 			type: "range",
 			major: maj,
 			minor: parseInt(parts[1], 10)
@@ -49722,7 +49722,6 @@ async function resolveGitRef(url, ref, manifest) {
 async function lsRemoteTags(url) {
 	const byTag = new Map();
 	for (const line of await lsRemote(url, ["--tags"])) {
-		if (!line) continue;
 		const [hash, refPath] = line.split("	");
 		if (!FULL_HASH_PATTERN.test(hash)) continue;
 		if (!refPath?.startsWith("refs/tags/")) continue;
