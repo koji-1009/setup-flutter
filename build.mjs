@@ -15,8 +15,15 @@ async function bundle(input, file) {
 		transform: { target },
 	});
 	try {
-		// GitHub Actions runs one file per entry point, so nothing may be split out.
-		await build.write({ file, format: "cjs", codeSplitting: false });
+		await build.write({
+			file,
+			format: "cjs",
+			// GitHub Actions runs one file per entry point, so nothing may be split out.
+			codeSplitting: false,
+			// Keep license notices. JSDoc and #__PURE__ annotations only serve
+			// editors and downstream bundlers, and nothing re-bundles dist/.
+			comments: { legal: true, annotation: false, jsdoc: false },
+		});
 	} finally {
 		await build.close();
 	}
