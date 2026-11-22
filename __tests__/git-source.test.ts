@@ -18,7 +18,10 @@ vi.mock("@actions/core");
 vi.mock("@actions/io");
 
 const fixture: FlutterManifest = JSON.parse(
-	readFileSync(join(__dirname, "fixtures", "releases_linux.json"), "utf8"),
+	readFileSync(
+		join(import.meta.dirname, "fixtures", "releases_linux.json"),
+		"utf8",
+	),
 );
 
 /** Makes every git command print `output`, as `git ls-remote` would. */

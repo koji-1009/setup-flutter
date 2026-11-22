@@ -29,7 +29,7 @@ type Matcher = {
 };
 
 const definition: { problemMatcher: Matcher[] } = JSON.parse(
-	readFileSync(join(__dirname, "../flutter-analyzer.json"), "utf8"),
+	readFileSync(join(import.meta.dirname, "../flutter-analyzer.json"), "utf8"),
 );
 
 function matcherFor(owner: string): Matcher {
@@ -293,7 +293,7 @@ describe("registerProblemMatcher()", () => {
 		registerProblemMatcher();
 
 		expect(info).toHaveBeenCalledWith(
-			`::add-matcher::${join(__dirname, "..", "flutter-analyzer.json")}`,
+			`::add-matcher::${join(import.meta.dirname, "..", "flutter-analyzer.json")}`,
 		);
 		expect(warning).not.toHaveBeenCalled();
 	});

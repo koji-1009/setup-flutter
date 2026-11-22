@@ -15,7 +15,7 @@ const MATCHER_FILE = "flutter-analyzer.json";
  * emitted.
  */
 export function registerProblemMatcher(): void {
-	let dir = __dirname;
+	let dir = import.meta.dirname;
 	for (;;) {
 		const candidate = join(dir, MATCHER_FILE);
 		if (existsSync(candidate)) {

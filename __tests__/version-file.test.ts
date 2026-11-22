@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readFvmrc, readPubspec, readVersionFile } from "../src/version-file";
 
-const fixturesDir = join(__dirname, "fixtures");
+const fixturesDir = join(import.meta.dirname, "fixtures");
 
 describe("readPubspec", () => {
 	it.each([

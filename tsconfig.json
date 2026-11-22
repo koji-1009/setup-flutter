@@ -2,6 +2,7 @@
 	"compilerOptions": {
 		"strict": true,
 		"noEmit": true,
+		"module": "preserve",
 		"types": ["node"],
 		"skipLibCheck": true,
 		"isolatedModules": true
@@ -9,7 +10,7 @@
 	"include": [
 		"src/**/*",
 		"__tests__/**/*",
-		"vitest.config.mts",
-		"mutator.config.mts"
+		"vitest.config.ts",
+		"mutator.config.ts"
 	]
 }
